@@ -35,6 +35,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   const testFlightLink = "https://testflight.apple.com/join/cGYTUPH1";
   const disclaimer = "This TestFlight link is for your personal use only. Sharing this public link is strictly prohibited. If we discover that this link has been shared, your beta access program will be immediately canceled without any refunds.";
@@ -126,6 +127,39 @@ const Dashboard = () => {
     }
   };
 
+  const handleSyncSubscription = async () => {
+    try {
+      setSyncLoading(true);
+      setError(null);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-sync`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          customer_id: subscription?.customer_id || 'auto' // Let the function find the customer ID
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to sync subscription data');
+      }
+
+      await fetchSubscription();
+    } catch (err: any) {
+      console.error('Error syncing subscription:', err);
+      setError(err.message);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'active':
@@ -172,7 +206,25 @@ const Dashboard = () => {
             {error && (
               <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start">
                 <AlertCircle className="text-red-600 w-5 h-5 mt-0.5 mr-3 flex-shrink-0" />
-                <p className="text-red-600">{error}</p>
+                <div className="flex-1">
+                  <p className="text-red-600 mb-3">{error}</p>
+                  {error.includes('No such subscription') && (
+                    <button
+                      onClick={handleSyncSubscription}
+                      disabled={syncLoading}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                    >
+                      {syncLoading ? (
+                        <span className="flex items-center">
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Syncing...
+                        </span>
+                      ) : (
+                        'Sync Subscription Data'
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

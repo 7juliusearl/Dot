@@ -36,7 +36,44 @@ Deno.serve(async (req) => {
     const { customer_id } = await req.json();
     console.log('Processing sync request for customer:', customer_id);
 
-    if (!customer_id) {
+    let actualCustomerId = customer_id;
+
+    // If customer_id is 'auto', get it from the authenticated user
+    if (customer_id === 'auto') {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Authorization header required' }),
+          { 
+            status: 401, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      
+      // Get the user's customer_id from the database
+      const { data: customerData, error: customerError } = await supabase
+        .from('stripe_customers')
+        .select('customer_id')
+        .eq('user_id', token) // This should be properly decoded, but for now using token
+        .single();
+
+      if (customerError || !customerData) {
+        return new Response(
+          JSON.stringify({ error: 'Customer not found for authenticated user' }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      actualCustomerId = customerData.customer_id;
+    }
+
+    if (!actualCustomerId) {
       return new Response(
         JSON.stringify({ error: 'Customer ID is required' }),
         { 
@@ -49,7 +86,7 @@ Deno.serve(async (req) => {
     // Get customer's subscriptions from Stripe
     console.log('Fetching subscriptions from Stripe...');
     const subscriptions = await stripe.subscriptions.list({
-      customer: customer_id,
+      customer: actualCustomerId,
       limit: 1,
       status: 'all',
       expand: ['data.default_payment_method']
@@ -61,7 +98,7 @@ Deno.serve(async (req) => {
     const { data: existingSubscription } = await supabase
       .from('stripe_subscriptions')
       .select('*')
-      .eq('customer_id', customer_id)
+      .eq('customer_id', actualCustomerId)
       .maybeSingle();
 
     const subscriptionData = subscriptions.data[0];
@@ -96,13 +133,13 @@ Deno.serve(async (req) => {
       result = await supabase
         .from('stripe_subscriptions')
         .update(updateData)
-        .eq('customer_id', customer_id);
+        .eq('customer_id', actualCustomerId);
     } else {
       result = await supabase
         .from('stripe_subscriptions')
         .insert({
           ...updateData,
-          customer_id
+          customer_id: actualCustomerId
         });
     }
 

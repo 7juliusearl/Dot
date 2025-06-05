@@ -66,6 +66,12 @@ async function handleEvent(event: Stripe.Event) {
     return;
   }
 
+  // Handle subscription events
+  if (event.type.startsWith('customer.subscription.')) {
+    await handleSubscriptionEvent(event, customerId);
+    return;
+  }
+
   if (event.type === 'checkout.session.completed') {
     console.log(`Processing checkout session for customer: ${customerId}`);
     const session = stripeData as Stripe.Checkout.Session;
@@ -128,6 +134,12 @@ async function handleEvent(event: Stripe.Event) {
 
       console.log(`Successfully created order for session: ${checkout_session_id}`);
 
+      // For subscription checkouts, also sync the subscription data
+      if (mode === 'subscription') {
+        console.log('Syncing subscription data for subscription checkout');
+        await syncSubscriptionData(customerId);
+      }
+
       // Send TestFlight invite after successful order creation
       if (customerData?.email) {
         try {
@@ -163,5 +175,100 @@ async function handleEvent(event: Stripe.Event) {
     } catch (error) {
       console.error('Error processing order:', error);
     }
+  }
+}
+
+async function handleSubscriptionEvent(event: Stripe.Event, customerId: string) {
+  console.log(`Processing subscription event: ${event.type} for customer: ${customerId}`);
+  
+  try {
+    switch (event.type) {
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted':
+        await syncSubscriptionData(customerId);
+        break;
+      
+      default:
+        console.log(`Unhandled subscription event: ${event.type}`);
+        break;
+    }
+  } catch (error) {
+    console.error(`Error handling subscription event ${event.type}:`, error);
+  }
+}
+
+async function syncSubscriptionData(customerId: string) {
+  console.log(`Syncing subscription data for customer: ${customerId}`);
+  
+  try {
+    // Get customer's active subscriptions from Stripe
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      limit: 1,
+      status: 'all',
+      expand: ['data.default_payment_method']
+    });
+
+    console.log('Found subscriptions:', subscriptions.data.length);
+
+    // Check if subscription record exists
+    const { data: existingSubscription } = await supabase
+      .from('stripe_subscriptions')
+      .select('*')
+      .eq('customer_id', customerId)
+      .maybeSingle();
+
+    const subscriptionData = subscriptions.data[0];
+    const paymentMethod = subscriptionData?.default_payment_method as Stripe.PaymentMethod;
+
+    const updateData = subscriptionData ? {
+      subscription_id: subscriptionData.id,
+      price_id: subscriptionData.items.data[0].price.id,
+      current_period_start: subscriptionData.current_period_start,
+      current_period_end: subscriptionData.current_period_end,
+      cancel_at_period_end: subscriptionData.cancel_at_period_end,
+      payment_method_brand: paymentMethod?.card?.brand || null,
+      payment_method_last4: paymentMethod?.card?.last4 || null,
+      status: subscriptionData.status,
+      updated_at: new Date().toISOString()
+    } : {
+      subscription_id: null,
+      price_id: null,
+      current_period_start: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      payment_method_brand: null,
+      payment_method_last4: null,
+      status: 'not_started',
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('Updating subscription with data:', updateData);
+
+    let result;
+    if (existingSubscription) {
+      result = await supabase
+        .from('stripe_subscriptions')
+        .update(updateData)
+        .eq('customer_id', customerId);
+    } else {
+      result = await supabase
+        .from('stripe_subscriptions')
+        .insert({
+          ...updateData,
+          customer_id
+        });
+    }
+
+    if (result.error) {
+      console.error('Database update error:', result.error);
+      throw result.error;
+    }
+
+    console.log('Subscription data synced successfully');
+  } catch (error) {
+    console.error('Error syncing subscription data:', error);
+    throw error;
   }
 }
