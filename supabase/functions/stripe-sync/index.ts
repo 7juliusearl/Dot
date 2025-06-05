@@ -53,11 +53,24 @@ Deno.serve(async (req) => {
 
       const token = authHeader.replace('Bearer ', '');
       
+      // Get the user from the token
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication token' }),
+          { 
+            status: 401, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
       // Get the user's customer_id from the database
       const { data: customerData, error: customerError } = await supabase
         .from('stripe_customers')
         .select('customer_id')
-        .eq('user_id', token) // This should be properly decoded, but for now using token
+        .eq('user_id', user.id)
         .single();
 
       if (customerError || !customerData) {
