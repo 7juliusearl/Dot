@@ -97,6 +97,7 @@ Deno.serve(async (req) => {
       const { error: createCustomerError } = await supabase.from('stripe_customers').insert({
         user_id: user.id,
         customer_id: newCustomer.id,
+        email: user.email,
         beta_user: true,
         payment_type: mode === 'subscription' ? 'monthly' : 'lifetime',
       });
