@@ -1,0 +1,19 @@
+# Netlify MCP Integration for Direct Deployment
+
+You have access to the Netlify MCP server which allows you to:
+- Deploy this project directly to Netlify
+- Manage Netlify sites and deployments
+- Handle environment variables and site configuration
+- Create and manage domains
+
+When the user asks to deploy to Netlify, use the Netlify MCP tools to:
+1. Create or update the Netlify site
+2. Deploy the built application
+3. Configure any necessary environment variables
+4. Provide the live URL
+
+For deployment, ensure the project is built first with `npm run build` and then deploy the `dist` folder.
+
+The current project is a React/TypeScript application that needs:
+- VITE_SUPABASE_URL environment variable
+- VITE_SUPABASE_ANON_KEY environment variable 
