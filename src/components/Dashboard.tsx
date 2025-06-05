@@ -36,6 +36,7 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const testFlightLink = "https://testflight.apple.com/join/cGYTUPH1";
   const disclaimer = "This TestFlight link is for your personal use only. Sharing this public link is strictly prohibited. If we discover that this link has been shared, your beta access program will be immediately canceled without any refunds.";
@@ -98,6 +99,7 @@ const Dashboard = () => {
     try {
       setCancelLoading(true);
       setError(null);
+      setSuccessMessage(null);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No active session');
@@ -118,6 +120,10 @@ const Dashboard = () => {
         throw new Error(error.error || 'Failed to cancel subscription');
       }
 
+      // Show success message
+      setSuccessMessage('Your subscription has been successfully cancelled. You will continue to have access until the end of your current billing period.');
+      
+      // Refresh subscription data to show updated status
       await fetchSubscription();
     } catch (err: any) {
       console.error('Error canceling subscription:', err);
@@ -131,6 +137,7 @@ const Dashboard = () => {
     try {
       setSyncLoading(true);
       setError(null);
+      setSuccessMessage(null);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No active session');
@@ -151,6 +158,7 @@ const Dashboard = () => {
         throw new Error(error.error || 'Failed to sync subscription data');
       }
 
+      setSuccessMessage('Subscription data has been successfully synchronized.');
       await fetchSubscription();
     } catch (err: any) {
       console.error('Error syncing subscription:', err);
@@ -203,6 +211,21 @@ const Dashboard = () => {
           <div className="bg-white rounded-xl p-8 shadow-lg">
             <h1 className="text-2xl font-bold text-charcoal mb-6">Account Dashboard</h1>
 
+            {successMessage && (
+              <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
+                <CheckCircle className="text-green-600 w-5 h-5 mt-0.5 mr-3 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-green-600">{successMessage}</p>
+                  <button
+                    onClick={() => setSuccessMessage(null)}
+                    className="text-green-700 hover:text-green-800 text-sm font-medium mt-2"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
             {error && (
               <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start">
                 <AlertCircle className="text-red-600 w-5 h-5 mt-0.5 mr-3 flex-shrink-0" />
@@ -232,8 +255,16 @@ const Dashboard = () => {
               <div className="space-y-6">
                 <div className="flex items-center justify-between pb-6 border-b border-gray-100">
                   <div className="flex items-center">
-                    <div className="bg-sky bg-opacity-10 p-3 rounded-lg mr-4">
-                      <CheckCircle className="text-sky w-6 h-6" />
+                    <div className={`p-3 rounded-lg mr-4 ${
+                      subscription.cancel_at_period_end 
+                        ? 'bg-orange-100' 
+                        : 'bg-sky bg-opacity-10'
+                    }`}>
+                      {subscription.cancel_at_period_end ? (
+                        <AlertTriangle className="text-orange-600 w-6 h-6" />
+                      ) : (
+                        <CheckCircle className="text-sky w-6 h-6" />
+                      )}
                     </div>
                     <div>
                       <p className="font-medium text-charcoal">Subscription Status</p>
@@ -249,9 +280,17 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    subscription.payment_type === 'lifetime' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                    subscription.payment_type === 'lifetime' 
+                      ? 'bg-purple-100 text-purple-800' 
+                      : subscription.cancel_at_period_end 
+                        ? 'bg-orange-100 text-orange-800' 
+                        : 'bg-blue-100 text-blue-800'
                   }`}>
-                    {subscription.payment_type === 'lifetime' ? 'Lifetime Access' : 'Monthly'}
+                    {subscription.payment_type === 'lifetime' 
+                      ? 'Lifetime Access' 
+                      : subscription.cancel_at_period_end 
+                        ? 'Cancelling' 
+                        : 'Monthly'}
                   </span>
                 </div>
 
