@@ -150,18 +150,6 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
             <p className="text-lg font-medium text-charcoal mb-6">Choose Your Access Plan</p>
           </div>
 
-          <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 rounded-xl p-8 mb-8 shadow-sm">
-            <div className="flex items-center justify-center mb-4">
-              <div className="bg-blue-100 rounded-full p-3">
-                <Mail className="text-blue-600 w-6 h-6" />
-              </div>
-            </div>
-            <h3 className="text-xl font-semibold text-blue-900 mb-2">App Access</h3>
-            <p className="text-blue-800">
-              Once your payment is complete, you can find your download link in your account dashboard.
-            </p>
-          </div>
-
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             {/* Lifetime Plan */}
             <div 
@@ -291,6 +279,18 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
             {error && (
               <p className="mt-4 text-red-600 text-sm">{error}</p>
             )}
+          </div>
+
+          <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 rounded-xl p-8 mb-6 shadow-sm">
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-blue-100 rounded-full p-3">
+                <Mail className="text-blue-600 w-6 h-6" />
+              </div>
+            </div>
+            <h3 className="text-xl font-semibold text-blue-900 mb-2">App Access</h3>
+            <p className="text-blue-800">
+              Once your payment is complete, you can find your download link in your account dashboard.
+            </p>
           </div>
 
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-6">
