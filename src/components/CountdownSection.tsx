@@ -187,11 +187,11 @@ const CountdownSection = () => {
               {isSpotAvailable ? (
                 <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg p-4">
                   <h3 className="text-lg font-bold mb-2">
-                    Secure Your Beta Access
+                    Last Chance: Lifetime Access Ending
                   </h3>
                   <p className="mb-3 opacity-90 text-sm">
-                    Once we hit 150 users, you'll have to wait for the next batch. 
-                    Don't miss your chance to be part of the exclusive first group.
+                    Once we hit 150 users, lifetime access will be permanently discontinued. 
+                    Future pricing will be yearly only - secure your lifetime deal now!
                   </p>
                   <button 
                     onClick={() => window.location.href = '/payment?plan=lifetime'}
