@@ -72,7 +72,7 @@ const PricingHighlight = () => {
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm font-medium">14-day money-back guarantee</span>
+                  <span className="text-slate text-sm font-medium">30-day money-back guarantee</span>
                 </li>
               </ul>
 

@@ -197,7 +197,7 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm font-medium">14-day money-back guarantee</span>
+                  <span className="text-slate text-sm font-medium">30-day money-back guarantee</span>
                 </li>
               </ul>
             </div>
@@ -314,8 +314,7 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                 <div className="bg-white bg-opacity-60 rounded-lg p-4 mb-4">
                   <h4 className="font-semibold text-amber-800 mb-2">💰 Refund Policy</h4>
                   <ul className="space-y-1 text-amber-700 text-sm">
-                    <li>• <span className="font-semibold">Lifetime Access:</span> Full refund within 14 days of purchase</li>
-                    <li>• <span className="font-semibold">Yearly Access:</span> Full refund within 30 days of purchase</li>
+                    <li>• <span className="font-semibold">All Plans:</span> Full refund within 30 days of purchase</li>
                     <li>• <span className="font-semibold">No questions asked:</span> We want you to love the app</li>
                     <li>• <span className="font-semibold">Processing time:</span> Refunds processed within 3-5 business days</li>
                   </ul>
