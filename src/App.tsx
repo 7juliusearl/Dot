@@ -125,10 +125,10 @@ function App() {
     <>
       <Hero />
       <CountdownSection />
-      <HowItWorks />
-      <Simulator />
-      <Testimonials />
       <Features />
+      <Simulator />
+      <HowItWorks />
+      <Testimonials />
       <AppShowcase />
       <CTA onEmailSubmit={() => {}} />
       <Contact />
