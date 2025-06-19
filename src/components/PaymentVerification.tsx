@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -19,10 +19,12 @@ const PaymentVerification = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<PaymentStatus>({ status: 'loading', retryCount: 0 });
+  const subscriptionRef = useRef<any>(null);
+  const hasSucceededRef = useRef(false);
 
   const verifyPayment = async (retryCount = 0) => {
     try {
-      setStatus({ status: 'loading', retryCount });
+      setStatus({ status: retryCount === 0 ? 'loading' : 'retrying', retryCount });
 
       // First check if we have a valid session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -37,63 +39,57 @@ const PaymentVerification = () => {
         throw new Error('Invalid payment plan');
       }
 
-      // For monthly subscriptions, check subscription status
-      if (plan === 'monthly') {
-        const { data: subscription, error: subscriptionError } = await supabase
-          .from('stripe_user_subscriptions')
-          .select('*')
-          .maybeSingle();
+      // Check for completed orders using the same logic as Dashboard
+      // First get the customer_id for this user
+      const { data: customerData, error: customerError } = await supabase
+        .from('stripe_customers')
+        .select('customer_id')
+        .eq('user_id', session.user.id)
+        .single();
 
-        if (subscriptionError) {
-          console.error('Subscription error:', subscriptionError);
-          throw new Error('Failed to verify subscription status');
-        }
-
-        if (subscription?.subscription_status === 'active') {
-          setStatus({
-            status: 'success',
-            message: 'Your monthly subscription has been activated!'
-          });
-          
-          setTimeout(() => navigate('/dashboard'), 2000);
-          return;
-        }
+      if (customerError || !customerData) {
+        console.log('No customer record found for user');
+        throw new Error('Customer record not found. Payment may still be processing.');
       }
 
-      // For lifetime purchases, check orders
-      if (plan === 'lifetime') {
-        const { data: orders, error: ordersError } = await supabase
-          .from('stripe_user_orders')
-          .select('*')
-          .eq('status', 'completed')
-          .eq('purchase_type', 'lifetime')
-          .maybeSingle();
+      // Then get orders for this customer
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('stripe_orders')
+        .select('*')
+        .eq('customer_id', customerData.customer_id)
+        .eq('status', 'completed')
+        .eq('purchase_type', plan)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-        if (ordersError) {
-          console.error('Orders error:', ordersError);
-          throw new Error('Failed to verify order status');
-        }
+      if (ordersError) {
+        console.error('Orders error:', ordersError);
+        throw new Error('Failed to verify order status');
+      }
 
-        if (orders) {
-          setStatus({
-            status: 'success',
-            message: 'Your lifetime access has been confirmed!'
-          });
-          
-          setTimeout(() => navigate('/dashboard'), 2000);
-          return;
+      if (ordersData && ordersData.length > 0) {
+        const order = ordersData[0];
+        if (plan === 'monthly') {
+          handleSuccess('Your monthly subscription has been activated!');
+        } else {
+          handleSuccess('Your lifetime access has been confirmed!');
         }
+        return;
       }
 
       // If we reach here, the payment processing is still in progress
-      if (retryCount < 12) { // Retry for up to 2 minutes (12 retries * 10 seconds)
+      if (retryCount < 8) { // Reduced from 12 to 8 retries (40 seconds total instead of 2 minutes)
         setStatus({ 
           status: 'retrying', 
-          message: `Processing your payment... (${retryCount + 1}/12)`,
+          message: retryCount < 3 
+            ? `Confirming your payment... (${retryCount + 1}/8)` 
+            : `Processing your payment... (${retryCount + 1}/8)`,
           retryCount 
         });
         
-        setTimeout(() => verifyPayment(retryCount + 1), 10000); // Wait 10 seconds before retry
+        // Faster retry intervals: 2s, 3s, 5s, then 5s intervals
+        const delay = retryCount < 3 ? [2000, 3000, 5000][retryCount] : 5000;
+        setTimeout(() => verifyPayment(retryCount + 1), delay);
       } else {
         // After all retries failed, provide manual sync option
         throw new Error('Payment processing is taking longer than expected. Please try syncing your subscription data manually.');
@@ -112,6 +108,80 @@ const PaymentVerification = () => {
       if (plan) {
         sessionStorage.setItem('selectedPlan', plan);
       }
+    }
+  };
+
+  const handleSuccess = (message: string) => {
+    if (hasSucceededRef.current) return; // Prevent multiple success calls
+    hasSucceededRef.current = true;
+    
+    // Clean up real-time subscription
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+      subscriptionRef.current = null;
+    }
+    
+    setStatus({
+      status: 'success',
+      message
+    });
+    
+    setTimeout(() => navigate('/dashboard'), 2000);
+  };
+
+  const setupRealTimeSubscription = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const plan = searchParams.get('plan');
+      if (!plan) return;
+
+      // First get the customer_id to avoid complex subqueries in realtime filter
+      const { data: customerData } = await supabase
+        .from('stripe_customers')
+        .select('customer_id')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (!customerData) return;
+
+      // Set up real-time subscription with simple filter
+      subscriptionRef.current = supabase
+        .channel(`payment-verification-${customerData.customer_id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT', // Only listen for new orders, not all events
+            schema: 'public',
+            table: 'stripe_orders',
+            filter: `customer_id=eq.${customerData.customer_id}`
+          },
+          (payload) => {
+            console.log('Real-time order update:', payload);
+            const newRecord = payload.new as any;
+            if (newRecord && newRecord.status === 'completed') {
+              if (newRecord.purchase_type === plan) {
+                if (plan === 'monthly') {
+                  handleSuccess('Your monthly subscription has been activated!');
+                } else {
+                  handleSuccess('Your lifetime access has been confirmed!');
+                }
+              }
+            }
+          }
+        )
+        .subscribe();
+
+      // Auto-cleanup after 5 minutes to prevent abandoned subscriptions
+      setTimeout(() => {
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
+        }
+      }, 5 * 60 * 1000); // 5 minutes
+    } catch (error) {
+      console.error('Failed to set up real-time subscription:', error);
     }
   };
 
@@ -138,7 +208,7 @@ const PaymentVerification = () => {
       }
 
       // After manual sync, try verification again
-      setTimeout(() => verifyPayment(0), 2000);
+      setTimeout(() => verifyPayment(0), 1000);
     } catch (error: any) {
       setStatus({
         status: 'error',
@@ -148,7 +218,30 @@ const PaymentVerification = () => {
   };
 
   useEffect(() => {
+    // Set up real-time subscription first, then start verification
+    setupRealTimeSubscription();
     verifyPayment();
+
+    // Cleanup function
+    const cleanup = () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+    };
+
+    // Add beforeunload listener to clean up on page refresh/close
+    const handleBeforeUnload = () => {
+      cleanup();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Cleanup on unmount
+    return () => {
+      cleanup();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [searchParams, navigate]);
 
   return (
@@ -165,10 +258,10 @@ const PaymentVerification = () => {
               <div className="flex flex-col items-center">
                 <Loader2 className="w-12 h-12 text-sky animate-spin mb-4" />
                 <h2 className="text-xl font-semibold text-charcoal">
-                  {status.message || 'Verifying your payment...'}
+                  {status.message || 'Confirming your payment...'}
                 </h2>
                 <p className="text-slate mt-2">
-                  Please wait while we confirm your payment status.
+                  This should only take a few seconds.
                 </p>
               </div>
             )}
@@ -181,7 +274,10 @@ const PaymentVerification = () => {
                 </h2>
                 <p className="text-slate mt-2">{status.message}</p>
                 <p className="text-sm text-gray-500 mt-2">
-                  This can take up to 2 minutes to complete.
+                  {(status.retryCount || 0) < 3 
+                    ? "Almost there..." 
+                    : "This can take up to 1 minute to complete."
+                  }
                 </p>
               </div>
             )}

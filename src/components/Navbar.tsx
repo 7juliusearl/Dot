@@ -52,7 +52,7 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
 
   const getUserEmail = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
+    if (session?.user?.email) {
       setUserEmail(session.user.email);
     }
   };
@@ -74,10 +74,17 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Check if there's actually a session before trying to sign out
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Clear any local storage items
+      if (session) {
+        const { error } = await supabase.auth.signOut();
+        if (error && error.message !== 'Auth session missing!') {
+          throw error;
+        }
+      }
+      
+      // Clear any local storage items regardless of session state
       localStorage.removeItem('supabase.auth.token');
       sessionStorage.clear();
       
@@ -93,6 +100,15 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
       window.location.reload();
     } catch (error) {
       console.error('Error signing out:', error);
+      
+      // Even if there's an error, still clear local state and redirect
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.clear();
+      setDropdownOpen(false);
+      setIsOpen(false);
+      setUserEmail(null);
+      navigate('/', { replace: true });
+      window.location.reload();
     }
   };
 
@@ -105,12 +121,28 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
-            <img 
-              src="/new-Icon.png" 
-              alt="DOT Logo" 
-              className="h-8 w-8 mr-2 cursor-pointer"
-              onClick={() => navigate('/')}
-            />
+            <div className="relative">
+              <img 
+                src="/dot-Icon.png" 
+                alt="DOT Logo" 
+                className="h-8 w-8 mr-2 cursor-pointer"
+                onClick={() => navigate('/')}
+                onError={(e) => {
+                  console.error('Logo failed to load:', e);
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
+              />
+              {/* Fallback logo */}
+              <div 
+                className="h-8 w-8 mr-2 cursor-pointer bg-sky rounded-full flex items-center justify-center text-slate font-bold text-sm"
+                onClick={() => navigate('/')}
+                style={{ display: 'none' }}
+              >
+                D
+              </div>
+            </div>
             <span 
               className="text-xl font-bold text-charcoal cursor-pointer" 
               onClick={() => navigate('/')}
@@ -140,7 +172,7 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
               Contact
             </button>
             
-            {showDashboard && (
+            {showDashboard ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -182,6 +214,13 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
                   )}
                 </AnimatePresence>
               </div>
+            ) : (
+              <button
+                onClick={() => navigate('/signin')}
+                className="bg-sky text-slate px-6 py-2 rounded-full font-medium hover:shadow-lg transition-shadow"
+              >
+                Log In
+              </button>
             )}
           </div>
           
@@ -189,9 +228,14 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-slate hover:text-sky focus:outline-none"
+              className="text-slate hover:text-sky focus:outline-none p-2 border border-slate rounded-md flex items-center justify-center"
+              aria-label={isOpen ? "Close menu" : "Open menu"}
             >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
+              {isOpen ? (
+                <X size={24} className="text-slate" />
+              ) : (
+                <Menu size={24} className="text-slate" />
+              )}
             </button>
           </div>
         </div>
@@ -252,7 +296,17 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
                     Sign Out
                   </button>
                 </>
-              ) : null}
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate('/signin');
+                  }}
+                  className="block w-full text-center bg-sky text-slate px-6 py-3 rounded-full font-medium hover:shadow-lg transition-shadow"
+                >
+                  Log In
+                </button>
+              )}
             </div>
           </motion.div>
         )}

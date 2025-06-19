@@ -7,30 +7,30 @@ const Footer = () => {
         <div className="flex flex-col items-center">
           <div className="flex items-center mb-6">
             <img 
-              src="/new-Icon.png" 
+              src="/dot-Icon.png" 
               alt="DOT Logo" 
-              className="h-6 w-6 mr-2"
+              className="h-8 w-8 mr-3"
             />
-            <span className="text-xl font-bold text-gray-900">Day of Timeline - Dot</span>
+            <span className="text-xl font-bold text-charcoal">Day of Timeline - Dot</span>
           </div>
           
           <div className="text-center mb-6">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-slate">
               &copy; {new Date().getFullYear()} Day of Timeline - Dot. All rights reserved.
             </p>
           </div>
           
           <div className="flex flex-wrap justify-center gap-4">
-            <a href="#" className="text-sm text-gray-600 hover:text-teal-600 transition-colors">
+            <a href="#" className="text-sm text-slate hover:text-sky transition-colors">
               Privacy Policy
             </a>
-            <a href="#" className="text-sm text-gray-600 hover:text-teal-600 transition-colors">
+            <a href="#" className="text-sm text-slate hover:text-sky transition-colors">
               Terms of Service
             </a>
-            <a href="#" className="text-sm text-gray-600 hover:text-teal-600 transition-colors">
+            <a href="#" className="text-sm text-slate hover:text-sky transition-colors">
               Legal
             </a>
-            <a href="#" className="text-sm text-gray-600 hover:text-teal-600 transition-colors">
+            <a href="#" className="text-sm text-slate hover:text-sky transition-colors">
               Sitemap
             </a>
           </div>

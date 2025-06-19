@@ -37,11 +37,10 @@ const Simulator = () => {
               src="https://app.supademo.com/embed/cmbg6ftpj4f32sn1rxob1x1fd?embed_v=2" 
               loading="lazy" 
               title="Simulator Demo" 
-              allow="clipboard-write" 
+              allow="clipboard-write; fullscreen" 
               frameBorder="0" 
-              webkitallowfullscreen="true" 
-              mozallowfullscreen="true" 
               allowFullScreen 
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
             />
           </div>

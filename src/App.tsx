@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
+
+import CountdownSection from './components/CountdownSection';
 import Partners from './components/Partners';
 import Features from './components/Features';
 import AppShowcase from './components/AppShowcase';
@@ -122,14 +124,12 @@ function App() {
   const HomePage = () => (
     <>
       <Hero />
-      <Partners />
+      <CountdownSection />
+      <Testimonials />
       <Features />
       <AppShowcase />
-      <FeatureTabs />
       <HowItWorks />
       <Simulator />
-      <Testimonials />
-      <Gallery />
       <CTA onEmailSubmit={() => {}} />
       <Contact />
     </>
@@ -147,11 +147,11 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route 
             path="/payment" 
-            element={
-              isAuthenticated ? 
-                <PaymentPage onAuthFailure={handleAuthFailure} /> : 
-                <SignIn onSuccess={() => setIsAuthenticated(true)} />
-            } 
+            element={<PaymentPage onAuthFailure={handleAuthFailure} />} 
+          />
+          <Route 
+            path="/signin" 
+            element={<SignIn onSuccess={() => setIsAuthenticated(true)} />} 
           />
           <Route 
             path="/payment/verify" 

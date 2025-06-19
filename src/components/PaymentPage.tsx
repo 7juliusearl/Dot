@@ -71,7 +71,9 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
       }
 
       if (!session) {
-        throw new Error('Please sign in to continue');
+        // For guest checkout, redirect to sign in first
+        navigate('/signin?redirect=/payment&plan=' + selectedPlan);
+        return;
       }
 
       const product = selectedPlan === 'lifetime' ? products.lifetime : products.monthly;
@@ -133,7 +135,7 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
               </div>
               <h3 className="text-xl font-semibold text-blue-900 mb-2">TestFlight Access</h3>
               <p className="text-blue-800">
-                After your payment is processed, please allow 10-20 minutes for us to manually send your TestFlight invite. If you haven't received the invite within 24 hours, please email us at hello@dayoftimeline.app and we'll get it sorted right away.
+                Once your payment comes through, you'll receive a download link to access the beta app and you'll also be able to find your download link in your account dashboard. If you experience any issues or don't receive your link, please reach out to us at hello@dayoftimeline.app and we'll get it sorted right away.
               </p>
               <p className="text-blue-700 text-sm mt-2">
                 Pro tip: Add hello@dayoftimeline.app to your contacts to ensure delivery
@@ -143,81 +145,93 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
             <p className="text-lg font-medium text-charcoal mb-6">Select Your Plan</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-8">
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
             {/* Lifetime Plan */}
             <div 
-              className={`bg-white rounded-xl p-8 shadow-lg transition-all cursor-pointer ${
+              className={`bg-white rounded-lg p-5 shadow-lg transition-all cursor-pointer relative overflow-visible ${
                 selectedPlan === 'lifetime' 
-                  ? 'border-4 border-sky ring-4 ring-sky ring-opacity-20 shadow-xl transform scale-[1.02]' 
-                  : 'border-2 border-transparent hover:border-sky hover:shadow-xl'
+                  ? 'border-3 border-purple-500 ring-4 ring-purple-300 ring-opacity-40 shadow-xl transform scale-[1.02]' 
+                  : 'border-2 border-purple-300 hover:border-purple-400 hover:shadow-xl hover:ring-2 hover:ring-purple-200 hover:ring-opacity-30'
               }`}
               onClick={() => setSelectedPlan('lifetime')}
             >
-              <div className="text-center mb-8">
-                <h3 className="text-xl font-bold text-charcoal mb-4">Lifetime Access</h3>
-                <div className="mb-4">
-                  <span className="text-slate line-through text-lg">$99.99</span>
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-4xl font-bold text-charcoal">$27.99</span>
-                    <span className="text-slate">one-time</span>
+              {/* Premium badge */}
+              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-2 py-1 rounded-full text-xs font-bold transform rotate-12 shadow-lg">
+                BEST VALUE
+              </div>
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-bold text-charcoal mb-1">Lifetime Access</h3>
+                <div className="mb-3">
+                  <span className="text-slate line-through text-sm">$99.99</span>
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-3xl font-bold text-charcoal">$27.99</span>
+                    <span className="text-slate text-sm">one-time</span>
                   </div>
-                  <span className="inline-block bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full mt-2">
+                  <span className="inline-block bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full mt-1 font-bold">
                     72% OFF FOR BETA USERS!
                   </span>
                 </div>
               </div>
 
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center text-slate">
-                  <Check size={18} className="text-sky mr-2 flex-shrink-0" />
-                  <span>Lifetime access to all features</span>
+              <ul className="space-y-2 mb-4">
+                <li className="flex items-center">
+                  <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm">Lifetime access to all features</span>
                 </li>
-                <li className="flex items-center text-slate">
-                  <Check size={18} className="text-sky mr-2 flex-shrink-0" />
-                  <span>Early access to beta features</span>
+                <li className="flex items-center">
+                  <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm">Early access to beta features</span>
                 </li>
-                <li className="flex items-center text-slate">
-                  <Check size={18} className="text-sky mr-2 flex-shrink-0" />
-                  <span>All future updates included</span>
+                <li className="flex items-center">
+                  <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm">All future updates included</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm">Instant TestFlight download</span>
                 </li>
               </ul>
             </div>
 
             {/* Monthly Plan */}
             <div 
-              className={`bg-white rounded-xl p-8 shadow-lg transition-all cursor-pointer ${
+              className={`bg-white rounded-lg p-5 shadow-lg transition-all cursor-pointer ${
                 selectedPlan === 'monthly' 
-                  ? 'border-4 border-sky ring-4 ring-sky ring-opacity-20 shadow-xl transform scale-[1.02]' 
-                  : 'border-2 border-transparent hover:border-sky hover:shadow-xl'
+                  ? 'border-3 border-sky ring-4 ring-sky ring-opacity-30 shadow-xl transform scale-[1.02]' 
+                  : 'border-2 border-gray-200 hover:border-sky hover:shadow-xl hover:ring-2 hover:ring-sky hover:ring-opacity-20'
               }`}
               onClick={() => setSelectedPlan('monthly')}
             >
-              <div className="text-center mb-8">
-                <h3 className="text-xl font-bold text-charcoal mb-4">Monthly Access</h3>
-                <div className="mb-4">
-                  <span className="text-slate line-through text-lg">$7.99</span>
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-4xl font-bold text-charcoal">$3.99</span>
-                    <span className="text-slate">/month</span>
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-bold text-charcoal mb-1">Monthly Access</h3>
+                <div className="mb-3">
+                  <span className="text-slate line-through text-sm">$7.99</span>
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-3xl font-bold text-charcoal">$3.99</span>
+                    <span className="text-slate text-sm">/month</span>
                   </div>
-                  <span className="inline-block bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full mt-2">
-                    BETA PRICE
+                  <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-1 font-medium">
+                    BETA PRICE LOCKED
                   </span>
                 </div>
               </div>
 
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center text-slate">
-                  <Check size={18} className="text-sky mr-2 flex-shrink-0" />
-                  <span>Flexible monthly billing</span>
+              <ul className="space-y-2 mb-4">
+                <li className="flex items-center">
+                  <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm">Flexible monthly billing</span>
                 </li>
-                <li className="flex items-center text-slate">
-                  <Check size={18} className="text-sky mr-2 flex-shrink-0" />
-                  <span>Price locked at $3.99/month</span>
+                <li className="flex items-center">
+                  <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm">Price locked at $3.99/month</span>
                 </li>
-                <li className="flex items-center text-slate">
-                  <Check size={18} className="text-sky mr-2 flex-shrink-0" />
-                  <span>Cancel anytime</span>
+                <li className="flex items-center">
+                  <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm">Cancel anytime</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm">Beta access included</span>
                 </li>
               </ul>
             </div>
@@ -246,19 +260,42 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
             </div>
 
             <button 
-              className={`w-full bg-sky text-slate py-3 rounded-lg font-medium transition-all ${
-                isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-lg'
+              className={`w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-lg font-semibold text-lg transition-all shadow-lg ${
+                isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-xl hover:scale-[1.02] transform'
               }`}
               onClick={handlePayment}
               disabled={isLoading}
             >
               {isLoading ? 'Processing...' : selectedPlan === 'lifetime' 
-                ? 'Get Lifetime Access - $27.99' 
-                : 'Start Monthly Plan - $3.99/month'}
+                ? 'Secure Lifetime Access - $27.99' 
+                : 'Start Beta Access - $3.99/month'}
             </button>
             {error && (
               <p className="mt-4 text-red-600 text-sm">{error}</p>
             )}
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
+            <div className="flex items-start">
+              <AlertTriangle className="text-red-600 w-6 h-6 mt-1 mr-3 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-red-800 mb-2">⚠️ Important Payment Notice</h3>
+                <p className="text-red-700 mb-3">
+                  <strong>If your payment fails or encounters any issues, please DO NOT attempt to pay again.</strong> Multiple payment attempts can cause technical issues with your account.
+                </p>
+                <p className="text-red-700 mb-3">
+                  Instead, please contact us immediately:
+                </p>
+                <ul className="space-y-2 text-red-700 mb-3">
+                  <li>• <span className="font-semibold">Email:</span> hello@dayoftimeline.app</li>
+                  <li>• <span className="font-semibold">Instagram:</span> @spiritmadevisuals</li>
+                  <li>• <span className="font-semibold">TikTok:</span> @spiritmadevisuals</li>
+                </ul>
+                <p className="text-red-700 text-sm">
+                  We'll resolve any payment issues quickly and manually. Thank you for your understanding!
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-6">

@@ -45,3 +45,10 @@ export interface Screenshot {
   image: string;
   alt: string;
 }
+
+export interface WaitlistEntry {
+  id: string;
+  email: string;
+  created_at: string;
+  status: 'pending' | 'notified' | 'converted';
+}

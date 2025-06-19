@@ -2,7 +2,10 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import Stripe from 'npm:stripe@17.7.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
-const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+// Create two clients: one for auth, one for admin operations
+const supabaseAuth = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '');
+const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+
 const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')!;
 const stripe = new Stripe(stripeSecret, {
   appInfo: {
@@ -60,7 +63,7 @@ Deno.serve(async (req) => {
     const {
       data: { user },
       error: getUserError,
-    } = await supabase.auth.getUser(token);
+    } = await supabaseAuth.auth.getUser(token);
 
     if (getUserError) {
       return corsResponse({ error: 'Failed to authenticate user' }, 401);
@@ -70,7 +73,7 @@ Deno.serve(async (req) => {
       return corsResponse({ error: 'User not found' }, 404);
     }
 
-    const { data: customer, error: getCustomerError } = await supabase
+    const { data: customer, error: getCustomerError } = await supabaseAdmin
       .from('stripe_customers')
       .select('customer_id')
       .eq('user_id', user.id)
@@ -85,62 +88,103 @@ Deno.serve(async (req) => {
     let customerId;
 
     if (!customer || !customer.customer_id) {
-      const newCustomer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          userId: user.id,
-        },
+      // Check if customer already exists in Stripe to prevent duplicates
+      let existingStripeCustomer;
+      try {
+        const stripeCustomers = await stripe.customers.list({
+          email: user.email,
+          limit: 1
+        });
+        existingStripeCustomer = stripeCustomers.data[0];
+      } catch (error) {
+        console.error('Error checking existing Stripe customers:', error);
+      }
+
+      let stripeCustomerId;
+      
+      if (existingStripeCustomer) {
+        console.log(`Found existing Stripe customer ${existingStripeCustomer.id} for user ${user.id}`);
+        stripeCustomerId = existingStripeCustomer.id;
+      } else {
+        const newCustomer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            userId: user.id,
+          },
+        });
+        console.log(`Created new Stripe customer ${newCustomer.id} for user ${user.id}`);
+        stripeCustomerId = newCustomer.id;
+      }
+
+      // Use upsert to handle potential race conditions and duplicate entries
+      console.log('Attempting to create customer mapping:', {
+        user_id: user.id,
+        customer_id: stripeCustomerId,
+        user_email: user.email
       });
 
-      console.log(`Created new Stripe customer ${newCustomer.id} for user ${user.id}`);
-
-      const { error: createCustomerError } = await supabase.from('stripe_customers').insert({
+      const { error: createCustomerError } = await supabaseAdmin.from('stripe_customers').upsert({
         user_id: user.id,
-        customer_id: newCustomer.id,
-        email: user.email,
-        beta_user: true,
-        payment_type: mode === 'subscription' ? 'monthly' : 'lifetime',
+        customer_id: stripeCustomerId,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id',
+        ignoreDuplicates: false
       });
 
       if (createCustomerError) {
-        console.error('Failed to save customer information in the database', createCustomerError);
+        console.error('DETAILED ERROR for customer mapping:', {
+          error: createCustomerError,
+          code: createCustomerError.code,
+          message: createCustomerError.message,
+          details: createCustomerError.details,
+          hint: createCustomerError.hint
+        });
 
-        try {
-          await stripe.customers.del(newCustomer.id);
-          await supabase.from('stripe_subscriptions').delete().eq('customer_id', newCustomer.id);
-        } catch (deleteError) {
-          console.error('Failed to clean up after customer mapping error:', deleteError);
+        // Only delete the Stripe customer if we just created it
+        if (!existingStripeCustomer) {
+          try {
+            await stripe.customers.del(stripeCustomerId);
+          } catch (deleteError) {
+            console.error('Failed to clean up Stripe customer after database error:', deleteError);
+          }
         }
 
-        return corsResponse({ error: 'Failed to create customer mapping' }, 500);
+        return corsResponse({ 
+          error: 'Failed to create customer mapping',
+          debug: {
+            code: createCustomerError.code,
+            message: createCustomerError.message,
+            details: createCustomerError.details
+          }
+        }, 500);
       }
 
       if (mode === 'subscription') {
-        const { error: createSubscriptionError } = await supabase.from('stripe_subscriptions').insert({
-          customer_id: newCustomer.id,
+        // Use upsert for subscription record too
+        const { error: createSubscriptionError } = await supabaseAdmin.from('stripe_subscriptions').upsert({
+          customer_id: stripeCustomerId,
           status: 'not_started',
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'customer_id',
+          ignoreDuplicates: true
         });
 
         if (createSubscriptionError) {
           console.error('Failed to save subscription in the database', createSubscriptionError);
-
-          try {
-            await stripe.customers.del(newCustomer.id);
-          } catch (deleteError) {
-            console.error('Failed to delete Stripe customer after subscription creation error:', deleteError);
-          }
-
-          return corsResponse({ error: 'Unable to save the subscription in the database' }, 500);
+          // Don't fail the entire process for subscription record issues
+          console.log('Continuing with checkout despite subscription record issue');
         }
       }
 
-      customerId = newCustomer.id;
-      console.log(`Successfully set up new customer ${customerId} with subscription record`);
+      customerId = stripeCustomerId;
+      console.log(`Successfully set up customer ${customerId}`);
     } else {
       customerId = customer.customer_id;
 
       if (mode === 'subscription') {
-        const { data: subscription, error: getSubscriptionError } = await supabase
+        const { data: subscription, error: getSubscriptionError } = await supabaseAdmin
           .from('stripe_subscriptions')
           .select('status')
           .eq('customer_id', customerId)
@@ -152,7 +196,7 @@ Deno.serve(async (req) => {
         }
 
         if (!subscription) {
-          const { error: createSubscriptionError } = await supabase.from('stripe_subscriptions').insert({
+          const { error: createSubscriptionError } = await supabaseAdmin.from('stripe_subscriptions').insert({
             customer_id: customerId,
             status: 'not_started',
           });

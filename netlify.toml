@@ -9,11 +9,7 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-# Handle Netlify functions
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+# Netlify functions are handled automatically
 
 # Exclude static assets from SPA redirect
 [[redirects]]
@@ -79,5 +75,5 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # Improved CSP for Stripe integration
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.stripe.com https://images.pexels.com https://fonts.gstatic.com https://tools.applemediaservices.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://api.stripe.com wss://*.supabase.co; frame-src https://js.stripe.com https://hooks.stripe.com; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none';"
+    # Improved CSP for Stripe integration and Supademo
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://js.stripe.com https://app.supademo.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.stripe.com https://images.pexels.com https://fonts.gstatic.com https://tools.applemediaservices.com https://app.supademo.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://api.stripe.com wss://*.supabase.co https://app.supademo.com; frame-src https://js.stripe.com https://hooks.stripe.com https://app.supademo.com; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none';"

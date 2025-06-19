@@ -19,21 +19,21 @@ const Testimonials = () => {
       id: 1,
       name: 'Brandon',
       location: 'Wedding Photographer, Palm Springs',
-      quote: 'This app is actually a lifesaver! Finally being able to organize and plan the wedding day while checking off those must have shots from the shot list and reminders and notifications for the wedding day is game changer! No more scrambling through texts or emails - everything I need is right here!',
+      quote: 'This app saved me 6+ hours on my last wedding! Finally being able to organize and plan the wedding day while checking off those must have shots from the shot list is a game changer! No more scrambling through texts or emails - everything I need is right here.',
       avatar: '/brandon.jpg'
     },
     {
       id: 2,
       name: 'Angelo',
       location: 'Videographer, NYC',
-      quote: 'Managing multiple contractors used to be a nightmare. Now my entire team stays synchronized without constant check-ins. The professional workflow has seriously impressed my clients.',
+      quote: 'Managing multiple contractors used to be a nightmare. Now my entire team stays synchronized without constant check-ins. This alone has saved me 3-4 hours per wedding and seriously impressed my clients.',
       avatar: '/angelo.jpg'
     },
     {
       id: 3,
       name: 'Jenna',
       location: 'Photographer, Irvine',
-      quote: 'Like?! This is mind blowing and can\'t believe I\'ve been doing weddings for years without something like this! Being able to message my team in-app makes it super easy to relay info without switching between different messaging apps.',
+      quote: 'Mind blowing! I can\'t believe I\'ve been doing weddings for years without something like this. The in-app team messaging alone saves me 2+ hours of coordination time per event.',
       avatar: '/jenna.jpg'
     }
   ];

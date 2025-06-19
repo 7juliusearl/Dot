@@ -1,18 +1,11 @@
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { useNavigate } from 'react-router-dom';
 
 const Hero = () => {
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
   });
-
-  const navigate = useNavigate();
-
-  const handleBetaAccess = () => {
-    navigate('/payment?plan=lifetime');
-  };
 
   return (
     <header 
@@ -37,23 +30,26 @@ const Hero = () => {
             Your Day of Timeline.
           </h1>
           <p className="text-xl md:text-2xl text-slate max-w-3xl mx-auto mb-8">
-            Finally, an iOS app that keeps you locked in and efficient while staying creative on a wedding day. 
+            Finally, an app that keeps you locked in and creative on a wedding day.
           </p>
-          
-          <button 
-            onClick={handleBetaAccess}
-            className="bg-sky text-slate px-8 py-3 rounded-full font-medium hover:shadow-lg transition-shadow mb-8"
-          >
-            Get Beta Access
-          </button>
 
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-sm text-slate font-medium">Coming soon</p>
-            <img 
-              src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us"
-              alt="Download on the App Store"
-              className="h-12"
-            />
+          <div className="flex flex-col items-center gap-6 mb-8">
+            <button 
+              onClick={() => window.location.href = '/payment?plan=lifetime'}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:shadow-xl transition-all transform hover:scale-105"
+            >
+              Secure Your Beta Spot
+            </button>
+            
+            <div className="text-center">
+              <p className="text-sm text-slate font-medium mb-2">Available now for iOS beta testers</p>
+              <div className="flex items-center justify-center gap-2 text-emerald-600">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm font-medium">Instant TestFlight access after payment</span>
+              </div>
+            </div>
           </div>
         </motion.div>
         
