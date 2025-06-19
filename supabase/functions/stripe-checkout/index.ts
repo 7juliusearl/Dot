@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
     console.log(`Using base URL: ${baseUrl} for checkout session`);
 
     // Create URLs with proper encoding
-    const planType = mode === 'subscription' ? 'monthly' : 'lifetime';
+    const planType = mode === 'subscription' ? 'yearly' : 'lifetime';
     const successUrl = new URL('/payment/verify', baseUrl);
     successUrl.searchParams.set('plan', planType);
     

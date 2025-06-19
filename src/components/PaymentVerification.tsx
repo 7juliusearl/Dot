@@ -35,8 +35,9 @@ const PaymentVerification = () => {
 
       // Check if we have a valid plan parameter
       const plan = searchParams.get('plan');
-      if (!plan || !['monthly', 'lifetime'].includes(plan)) {
-        throw new Error('Invalid payment plan');
+      if (!plan || !['yearly', 'lifetime'].includes(plan)) {
+        navigate('/payment?plan=lifetime');
+        return;
       }
 
       // Check for completed orders using the same logic as Dashboard
@@ -69,10 +70,10 @@ const PaymentVerification = () => {
 
       if (ordersData && ordersData.length > 0) {
         const order = ordersData[0];
-        if (plan === 'monthly') {
-          handleSuccess('Your monthly subscription has been activated!');
+        if (plan === 'yearly') {
+          handleSuccess('Your yearly subscription is now active! You have full access to the beta program.');
         } else {
-          handleSuccess('Your lifetime access has been confirmed!');
+          handleSuccess('Your lifetime access is now active! You have permanent access to all features.');
         }
         return;
       }
@@ -162,10 +163,10 @@ const PaymentVerification = () => {
             const newRecord = payload.new as any;
             if (newRecord && newRecord.status === 'completed') {
               if (newRecord.purchase_type === plan) {
-                if (plan === 'monthly') {
-                  handleSuccess('Your monthly subscription has been activated!');
+                if (plan === 'yearly') {
+                  handleSuccess('Your yearly subscription is now active! You have full access to the beta program.');
                 } else {
-                  handleSuccess('Your lifetime access has been confirmed!');
+                  handleSuccess('Your lifetime access is now active! You have permanent access to all features.');
                 }
               }
             }

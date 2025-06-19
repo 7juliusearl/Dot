@@ -21,13 +21,13 @@ const PricingHighlight = () => {
           <div className="text-center mb-6">
             <div className="inline-flex items-center bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-bold mb-3">
               <Clock className="w-3 h-3 mr-1" />
-              Limited Time Beta Pricing
+              Final Batch: Lifetime Access Ending
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-charcoal mb-3">
-              Lock in Lifetime Access Before Launch
+              Last Chance for Lifetime Access
             </h2>
             <p className="text-lg text-slate">
-              Get unlimited access for life at 72% off the future App Store price
+              After this batch, we're transitioning to yearly pricing. Choose your plan and lock in your rate forever.
             </p>
           </div>
 
@@ -36,19 +36,18 @@ const PricingHighlight = () => {
             {/* Lifetime - Featured */}
             <div className="bg-white rounded-lg p-5 shadow-lg border-3 border-purple-500 relative overflow-visible">
               <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-2 py-1 rounded-full text-xs font-bold transform rotate-12 shadow-lg">
-                BEST VALUE
+                LAST CHANCE
               </div>
               
               <div className="text-center mb-4">
                 <h3 className="text-lg font-bold text-charcoal mb-1">Lifetime Access</h3>
                 <div className="mb-3">
-                  <span className="text-slate line-through text-sm">$99.99</span>
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-3xl font-bold text-charcoal">$27.99</span>
+                    <span className="text-3xl font-bold text-charcoal">$99.99</span>
                     <span className="text-slate text-sm">one-time</span>
                   </div>
-                  <span className="inline-block bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full mt-1 font-bold">
-                    72% OFF BETA PRICE
+                  <span className="inline-block bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-xs px-2 py-1 rounded-full mt-1 font-bold">
+                    FINAL BATCH ONLY
                   </span>
                 </div>
               </div>
@@ -60,11 +59,11 @@ const PricingHighlight = () => {
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">All future updates included</span>
+                  <span className="text-slate text-sm">Never pay again - grandfathered forever</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Priority beta access</span>
+                  <span className="text-slate text-sm">All future updates included</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
@@ -81,18 +80,20 @@ const PricingHighlight = () => {
               </button>
             </div>
 
-            {/* Monthly Option */}
-            <div className="bg-white rounded-lg p-5 shadow-lg border-2 border-gray-200">
+            {/* Yearly Option */}
+            <div className="bg-white rounded-lg p-5 shadow-lg border-2 border-gray-200 relative overflow-visible">
+              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-2 py-1 rounded-full text-xs font-bold transform rotate-12 shadow-lg">
+                FOUNDING RATE
+              </div>
               <div className="text-center mb-4">
-                <h3 className="text-lg font-bold text-charcoal mb-1">Monthly Access</h3>
+                <h3 className="text-lg font-bold text-charcoal mb-1">Yearly Access</h3>
                 <div className="mb-3">
-                  <span className="text-slate line-through text-sm">$7.99</span>
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-3xl font-bold text-charcoal">$3.99</span>
-                    <span className="text-slate text-sm">/month</span>
+                    <span className="text-3xl font-bold text-charcoal">$27.99</span>
+                    <span className="text-slate text-sm">/year</span>
                   </div>
                   <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-1 font-medium">
-                    BETA PRICE LOCKED
+                    FOUNDING MEMBER PRICING
                   </span>
                 </div>
               </div>
@@ -100,11 +101,11 @@ const PricingHighlight = () => {
               <ul className="space-y-2 mb-4">
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Flexible monthly billing</span>
+                  <span className="text-slate text-sm">Full access to all features</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Price locked at $3.99/month</span>
+                  <span className="text-slate text-sm">Founding member rate - locked forever</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
@@ -117,10 +118,11 @@ const PricingHighlight = () => {
               </ul>
 
               <button 
-                onClick={() => window.location.href = '/payment?plan=monthly'}
-                className="w-full bg-sky text-slate py-2 rounded-lg font-medium hover:shadow-lg transition-all text-sm"
+                onClick={() => window.location.href = '/payment?plan=yearly'}
+                className="w-full bg-gradient-to-r from-sky-500 to-blue-600 text-white py-2 rounded-lg font-medium hover:shadow-lg transition-all flex items-center justify-center text-sm"
               >
-                Start Monthly Plan
+                Get Yearly Access
+                <ArrowRight className="w-4 h-4 ml-1" />
               </button>
             </div>
           </div>

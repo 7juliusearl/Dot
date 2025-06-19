@@ -23,13 +23,13 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [selectedPlan, setSelectedPlan] = useState<'lifetime' | 'monthly'>('lifetime');
+  const [selectedPlan, setSelectedPlan] = useState<'lifetime' | 'yearly'>('lifetime');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const plan = searchParams.get('plan');
-    if (plan === 'lifetime' || plan === 'monthly') {
+    if (plan === 'lifetime' || plan === 'yearly') {
       setSelectedPlan(plan);
     }
     setError(null);
@@ -76,7 +76,7 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
         return;
       }
 
-      const product = selectedPlan === 'lifetime' ? products.lifetime : products.monthly;
+      const product = selectedPlan === 'lifetime' ? products.lifetime : products.yearly;
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
         method: 'POST',
@@ -122,9 +122,9 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
             <h1 className="text-3xl md:text-4xl font-bold text-charcoal mb-4">
               Beta Access Program
             </h1>
-            <div className="bg-sky bg-opacity-20 rounded-xl p-6 mb-8">
-              <h2 className="text-2xl font-bold text-charcoal mb-2">Early Access Pricing</h2>
-              <p className="text-slate">Limited spots available due to high demand</p>
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-6 mb-8">
+              <h2 className="text-2xl font-bold text-red-800 mb-2">🔥 Final Batch: Lifetime Access Ending Soon</h2>
+              <p className="text-red-700 font-medium">This is the last opportunity to secure lifetime access at this price. After this batch fills up, we're transitioning to yearly pricing to ensure sustainable development.</p>
             </div>
 
             <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 rounded-xl p-8 mb-8 shadow-sm">
@@ -142,7 +142,7 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
               </p>
             </div>
 
-            <p className="text-lg font-medium text-charcoal mb-6">Select Your Plan</p>
+            <p className="text-lg font-medium text-charcoal mb-6">Choose Your Access Plan</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -157,18 +157,17 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
             >
               {/* Premium badge */}
               <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-2 py-1 rounded-full text-xs font-bold transform rotate-12 shadow-lg">
-                BEST VALUE
+                LAST CHANCE
               </div>
               <div className="text-center mb-4">
                 <h3 className="text-lg font-bold text-charcoal mb-1">Lifetime Access</h3>
                 <div className="mb-3">
-                  <span className="text-slate line-through text-sm">$99.99</span>
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-3xl font-bold text-charcoal">$27.99</span>
+                    <span className="text-3xl font-bold text-charcoal">$99.99</span>
                     <span className="text-slate text-sm">one-time</span>
                   </div>
-                  <span className="inline-block bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full mt-1 font-bold">
-                    72% OFF FOR BETA USERS!
+                  <span className="inline-block bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-xs px-2 py-1 rounded-full mt-1 font-bold">
+                    FINAL BATCH ONLY
                   </span>
                 </div>
               </div>
@@ -180,7 +179,7 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Early access to beta features</span>
+                  <span className="text-slate text-sm">Never pay again - grandfathered forever</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
@@ -193,25 +192,27 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
               </ul>
             </div>
 
-            {/* Monthly Plan */}
+            {/* Yearly Plan */}
             <div 
-              className={`bg-white rounded-lg p-5 shadow-lg transition-all cursor-pointer ${
-                selectedPlan === 'monthly' 
+              className={`bg-white rounded-lg p-5 shadow-lg transition-all cursor-pointer relative overflow-visible ${
+                selectedPlan === 'yearly' 
                   ? 'border-3 border-sky ring-4 ring-sky ring-opacity-30 shadow-xl transform scale-[1.02]' 
                   : 'border-2 border-gray-200 hover:border-sky hover:shadow-xl hover:ring-2 hover:ring-sky hover:ring-opacity-20'
               }`}
-              onClick={() => setSelectedPlan('monthly')}
+              onClick={() => setSelectedPlan('yearly')}
             >
+              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-2 py-1 rounded-full text-xs font-bold transform rotate-12 shadow-lg">
+                FOUNDING RATE
+              </div>
               <div className="text-center mb-4">
-                <h3 className="text-lg font-bold text-charcoal mb-1">Monthly Access</h3>
+                <h3 className="text-lg font-bold text-charcoal mb-1">Yearly Access</h3>
                 <div className="mb-3">
-                  <span className="text-slate line-through text-sm">$7.99</span>
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-3xl font-bold text-charcoal">$3.99</span>
-                    <span className="text-slate text-sm">/month</span>
+                    <span className="text-3xl font-bold text-charcoal">$27.99</span>
+                    <span className="text-slate text-sm">/year</span>
                   </div>
                   <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-1 font-medium">
-                    BETA PRICE LOCKED
+                    FOUNDING MEMBER PRICING
                   </span>
                 </div>
               </div>
@@ -219,11 +220,11 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
               <ul className="space-y-2 mb-4">
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Flexible monthly billing</span>
+                  <span className="text-slate text-sm">Full access to all features</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Price locked at $3.99/month</span>
+                  <span className="text-slate text-sm">Founding member rate - locked forever</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
@@ -267,12 +268,32 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
               disabled={isLoading}
             >
               {isLoading ? 'Processing...' : selectedPlan === 'lifetime' 
-                ? 'Secure Lifetime Access - $27.99' 
-                : 'Start Beta Access - $3.99/month'}
+                ? 'Secure Lifetime Access - $99.99' 
+                : 'Start Yearly Access - $27.99/year'}
             </button>
             {error && (
               <p className="mt-4 text-red-600 text-sm">{error}</p>
             )}
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+            <div className="flex items-start">
+              <Clock className="text-blue-600 w-6 h-6 mt-1 mr-3 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-blue-800 mb-2">🔄 Pricing Transition Notice</h3>
+                <p className="text-blue-700 mb-3">
+                  <strong>We're transitioning our pricing model to ensure sustainable development.</strong> This is the final batch where lifetime access is available.
+                </p>
+                <ul className="space-y-2 text-blue-700 mb-3">
+                  <li>• <span className="font-semibold">Current Batch:</span> Choose between Lifetime ($99.99) or Yearly ($27.99)</li>
+                  <li>• <span className="font-semibold">Next Batch:</span> Only yearly pricing will be available</li>
+                  <li>• <span className="font-semibold">Grandfathering:</span> Your chosen plan rate is locked forever</li>
+                </ul>
+                <p className="text-blue-700 text-sm">
+                  This change allows us to provide consistent updates and support while honoring our early supporters with the best possible rates.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
