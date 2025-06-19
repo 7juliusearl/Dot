@@ -289,7 +289,7 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                 <Mail className="text-blue-600 w-6 h-6" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold text-blue-900 mb-2">App Access</h3>
+            <h3 className="text-xl font-semibold text-blue-900 mb-2 text-center">App Access</h3>
             <p className="text-blue-800">
               Once your payment is complete, you can find your download link in your account dashboard.
             </p>
