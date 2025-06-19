@@ -133,12 +133,9 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                   <Mail className="text-blue-600 w-6 h-6" />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold text-blue-900 mb-2">TestFlight Access</h3>
+              <h3 className="text-xl font-semibold text-blue-900 mb-2">App Access</h3>
               <p className="text-blue-800">
-                Once your payment comes through, you'll receive a download link to access the beta app and you'll also be able to find your download link in your account dashboard. If you experience any issues or don't receive your link, please reach out to us at hello@dayoftimeline.app and we'll get it sorted right away.
-              </p>
-              <p className="text-blue-700 text-sm mt-2">
-                Pro tip: Add hello@dayoftimeline.app to your contacts to ensure delivery
+                Once your payment is complete, you can find your download link in your account dashboard.
               </p>
             </div>
 
@@ -187,7 +184,7 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Instant TestFlight download</span>
+                  <span className="text-slate text-sm">Instant app access</span>
                 </li>
               </ul>
             </div>
@@ -232,7 +229,7 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                 </li>
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Beta access included</span>
+                  <span className="text-slate text-sm">Instant app access</span>
                 </li>
               </ul>
             </div>

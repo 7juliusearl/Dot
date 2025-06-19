@@ -67,7 +67,7 @@ const PricingHighlight = () => {
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Instant TestFlight download</span>
+                  <span className="text-slate text-sm">Instant app access</span>
                 </li>
               </ul>
 
@@ -113,7 +113,7 @@ const PricingHighlight = () => {
                 </li>
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Beta access included</span>
+                  <span className="text-slate text-sm">Instant app access</span>
                 </li>
               </ul>
 
