@@ -195,6 +195,10 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
                   <span className="text-slate text-sm">Instant app access</span>
                 </li>
+                <li className="flex items-center">
+                  <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm font-medium">14-day money-back guarantee</span>
+                </li>
               </ul>
             </div>
 
@@ -240,6 +244,10 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
                   <span className="text-slate text-sm">Instant app access</span>
+                </li>
+                <li className="flex items-center">
+                  <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="text-slate text-sm font-medium">30-day money-back guarantee</span>
                 </li>
               </ul>
             </div>
@@ -303,8 +311,16 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
                 <p className="text-amber-700 mb-4">
                   Please note that this is a beta product. Some features may be broken or missing as we continue development. By joining the beta program, you acknowledge that you're using pre-release software that may change significantly before final release. We really appreciate your patience and understanding as we work on making this the best product possible! Thank you :)
                 </p>
+                <div className="bg-white bg-opacity-60 rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-amber-800 mb-2">💰 Refund Policy</h4>
+                  <ul className="space-y-1 text-amber-700 text-sm">
+                    <li>• <span className="font-semibold">Lifetime Access:</span> Full refund within 14 days of purchase</li>
+                    <li>• <span className="font-semibold">Yearly Access:</span> Full refund within 30 days of purchase</li>
+                    <li>• <span className="font-semibold">No questions asked:</span> We want you to love the app</li>
+                    <li>• <span className="font-semibold">Processing time:</span> Refunds processed within 3-5 business days</li>
+                  </ul>
+                </div>
                 <ul className="space-y-2 text-amber-700">
-                  <li>• <span className="font-semibold">Refund Policy:</span> Refunds are only available within 24 hours of purchase</li>
                   <li>• <span className="font-semibold">Platform Support:</span> Currently available for iOS only - Android support is not available</li>
                 </ul>
               </div>
