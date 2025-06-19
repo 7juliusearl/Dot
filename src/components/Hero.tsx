@@ -10,7 +10,7 @@ const Hero = () => {
   return (
     <header 
       id="home" 
-      className="pt-32 pb-0 overflow-hidden"
+      className="pt-32 pb-24 overflow-hidden"
       ref={ref}
       style={{
         backgroundImage: 'radial-gradient(circle, #f2f2f2, #edeef6, #e4ecfa, #d7eafd, #c7e9ff)'
@@ -57,8 +57,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="mt-16 flex justify-center relative"
-          style={{ marginBottom: '-25%' }}
+          className="mt-16 flex justify-center relative z-10"
         >
           <div className="relative w-full max-w-[320px]">
             <img 

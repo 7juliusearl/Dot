@@ -114,7 +114,7 @@ const CountdownSection = () => {
   };
 
   return (
-    <section className="py-12 bg-gradient-to-r from-red-50 to-orange-50">
+    <section className="pt-32 pb-12 bg-gradient-to-r from-red-50 to-orange-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           ref={ref}
