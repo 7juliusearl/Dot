@@ -123,9 +123,9 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
           <div className="flex items-center">
             <div className="relative">
               <img 
-                src="/dot-Icon.png" 
+                src="/dot-logo.png" 
                 alt="DOT Logo" 
-                className="h-8 w-8 mr-2 cursor-pointer"
+                className="h-8 w-8 mr-2 cursor-pointer rounded-full"
                 onClick={() => navigate('/')}
                 onError={(e) => {
                   console.error('Logo failed to load:', e);
@@ -134,13 +134,16 @@ const Navbar = ({ showDashboard }: NavbarProps) => {
                   if (fallback) fallback.style.display = 'flex';
                 }}
               />
-              {/* Fallback logo */}
+              {/* Fallback logo with gradient matching user's design */}
               <div 
-                className="h-8 w-8 mr-2 cursor-pointer bg-sky rounded-full flex items-center justify-center text-slate font-bold text-sm"
+                className="h-8 w-8 mr-2 cursor-pointer rounded-full flex items-center justify-center text-white font-bold text-sm"
                 onClick={() => navigate('/')}
-                style={{ display: 'none' }}
+                style={{ 
+                  display: 'none',
+                  background: 'linear-gradient(135deg, #D2B48C 0%, #87CEEB 100%)'
+                }}
               >
-                D
+                t.
               </div>
             </div>
             <span 
