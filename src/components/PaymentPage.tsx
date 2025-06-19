@@ -147,19 +147,19 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 rounded-xl p-8 mb-8 shadow-sm">
-              <div className="flex items-center justify-center mb-4">
-                <div className="bg-blue-100 rounded-full p-3">
-                  <Mail className="text-blue-600 w-6 h-6" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold text-blue-900 mb-2">App Access</h3>
-              <p className="text-blue-800">
-                Once your payment is complete, you can find your download link in your account dashboard.
-              </p>
-            </div>
-
             <p className="text-lg font-medium text-charcoal mb-6">Choose Your Access Plan</p>
+          </div>
+
+          <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 rounded-xl p-8 mb-8 shadow-sm">
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-blue-100 rounded-full p-3">
+                <Mail className="text-blue-600 w-6 h-6" />
+              </div>
+            </div>
+            <h3 className="text-xl font-semibold text-blue-900 mb-2">App Access</h3>
+            <p className="text-blue-800">
+              Once your payment is complete, you can find your download link in your account dashboard.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -291,29 +291,6 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
             {error && (
               <p className="mt-4 text-red-600 text-sm">{error}</p>
             )}
-          </div>
-
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
-            <div className="flex items-start">
-              <AlertTriangle className="text-red-600 w-6 h-6 mt-1 mr-3 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-red-800 mb-2">⚠️ Important Payment Notice</h3>
-                <p className="text-red-700 mb-3">
-                  <strong>If your payment fails or encounters any issues, please DO NOT attempt to pay again.</strong> Multiple payment attempts can cause technical issues with your account.
-                </p>
-                <p className="text-red-700 mb-3">
-                  Instead, please contact us immediately:
-                </p>
-                <ul className="space-y-2 text-red-700 mb-3">
-                  <li>• <span className="font-semibold">Email:</span> hello@dayoftimeline.app</li>
-                  <li>• <span className="font-semibold">Instagram:</span> @spiritmadevisuals</li>
-                  <li>• <span className="font-semibold">TikTok:</span> @spiritmadevisuals</li>
-                </ul>
-                <p className="text-red-700 text-sm">
-                  We'll resolve any payment issues quickly and manually. Thank you for your understanding!
-                </p>
-              </div>
-            </div>
           </div>
 
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-6">
