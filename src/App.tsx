@@ -124,12 +124,12 @@ function App() {
   const HomePage = () => (
     <>
       <Hero />
-      <CountdownSection />
-      <Testimonials />
       <Features />
       <AppShowcase />
       <HowItWorks />
       <Simulator />
+      <CountdownSection />
+      <Testimonials />
       <CTA onEmailSubmit={() => {}} />
       <Contact />
     </>
