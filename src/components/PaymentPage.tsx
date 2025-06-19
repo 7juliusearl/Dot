@@ -127,6 +127,26 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
               <p className="text-red-700 font-medium">This is the last opportunity to secure lifetime access at this price. After this batch fills up, we're transitioning to yearly pricing to ensure sustainable development.</p>
             </div>
 
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+              <div className="flex items-start">
+                <Clock className="text-blue-600 w-6 h-6 mt-1 mr-3 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-blue-800 mb-2">🔄 Pricing Transition Notice</h3>
+                  <p className="text-blue-700 mb-3">
+                    <strong>We're transitioning our pricing model to ensure sustainable development.</strong> This is the final batch where lifetime access is available.
+                  </p>
+                  <ul className="space-y-2 text-blue-700 mb-3">
+                    <li>• <span className="font-semibold">Current Batch:</span> Choose between Lifetime ($99.99) or Yearly ($27.99)</li>
+                    <li>• <span className="font-semibold">Next Batch:</span> Only yearly pricing will be available</li>
+                    <li>• <span className="font-semibold">Grandfathering:</span> Your chosen plan rate is locked forever</li>
+                  </ul>
+                  <p className="text-blue-700 text-sm">
+                    This change allows us to provide consistent updates and support while honoring our early supporters with the best possible rates.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 rounded-xl p-8 mb-8 shadow-sm">
               <div className="flex items-center justify-center mb-4">
                 <div className="bg-blue-100 rounded-full p-3">
@@ -271,26 +291,6 @@ const PaymentPage = ({ onAuthFailure }: PaymentPageProps) => {
             {error && (
               <p className="mt-4 text-red-600 text-sm">{error}</p>
             )}
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
-            <div className="flex items-start">
-              <Clock className="text-blue-600 w-6 h-6 mt-1 mr-3 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-blue-800 mb-2">🔄 Pricing Transition Notice</h3>
-                <p className="text-blue-700 mb-3">
-                  <strong>We're transitioning our pricing model to ensure sustainable development.</strong> This is the final batch where lifetime access is available.
-                </p>
-                <ul className="space-y-2 text-blue-700 mb-3">
-                  <li>• <span className="font-semibold">Current Batch:</span> Choose between Lifetime ($99.99) or Yearly ($27.99)</li>
-                  <li>• <span className="font-semibold">Next Batch:</span> Only yearly pricing will be available</li>
-                  <li>• <span className="font-semibold">Grandfathering:</span> Your chosen plan rate is locked forever</li>
-                </ul>
-                <p className="text-blue-700 text-sm">
-                  This change allows us to provide consistent updates and support while honoring our early supporters with the best possible rates.
-                </p>
-              </div>
-            </div>
           </div>
 
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
