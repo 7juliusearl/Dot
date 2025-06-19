@@ -1,0 +1,15 @@
+# API routes (highest priority)
+/api/* /.netlify/functions/:splat 200
+
+# Static assets (exclude from SPA redirect)
+/assets/* /assets/:splat 200
+
+# Specific SPA routes
+/payment /index.html 200
+/payment/* /index.html 200
+/dashboard /index.html 200
+/success /index.html 200
+/404 /index.html 200
+
+# Catch-all for SPA routing (must be last)
+/* /index.html 200 
