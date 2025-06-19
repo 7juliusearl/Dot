@@ -42,12 +42,13 @@ const PricingHighlight = () => {
               <div className="text-center mb-4">
                 <h3 className="text-lg font-bold text-charcoal mb-1">Lifetime Access</h3>
                 <div className="mb-3">
+                  <span className="text-slate line-through text-sm">$299 App Store Price</span>
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-3xl font-bold text-charcoal">$99.99</span>
                     <span className="text-slate text-sm">one-time</span>
                   </div>
                   <span className="inline-block bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-xs px-2 py-1 rounded-full mt-1 font-bold">
-                    FINAL BATCH ONLY
+                    BETA + APP STORE ACCESS
                   </span>
                 </div>
               </div>
@@ -55,7 +56,7 @@ const PricingHighlight = () => {
               <ul className="space-y-2 mb-4">
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Lifetime access to all features</span>
+                  <span className="text-slate text-sm">Beta access now + App Store version</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="text-purple-500 w-4 h-4 mr-2 flex-shrink-0" />
@@ -88,12 +89,13 @@ const PricingHighlight = () => {
               <div className="text-center mb-4">
                 <h3 className="text-lg font-bold text-charcoal mb-1">Yearly Access</h3>
                 <div className="mb-3">
+                  <span className="text-slate line-through text-sm">$99/year App Store Price</span>
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-3xl font-bold text-charcoal">$27.99</span>
                     <span className="text-slate text-sm">/year</span>
                   </div>
                   <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-1 font-medium">
-                    FOUNDING MEMBER PRICING
+                    BETA + APP STORE ACCESS
                   </span>
                 </div>
               </div>
@@ -101,7 +103,7 @@ const PricingHighlight = () => {
               <ul className="space-y-2 mb-4">
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm">Full access to all features</span>
+                  <span className="text-slate text-sm">Beta access now + App Store version</span>
                 </li>
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
