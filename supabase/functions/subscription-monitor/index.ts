@@ -2,161 +2,232 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
 const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '', 
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 );
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+interface UserStatus {
+  email: string;
+  customer_id: string;
+  payment_type: string;
+  subscription_status: string;
+  cancel_at_period_end: boolean;
+  current_period_end: number;
+  access_expires_on: string;
+  days_remaining: number;
+  action_needed: string;
+}
 
 Deno.serve(async (req) => {
   try {
-    console.log('🔍 Running subscription health monitoring...');
-
-    // 1. Check for not_started subscriptions older than 24 hours
-    const { data: notStartedData, error: notStartedError } = await supabase
-      .from('stripe_subscriptions')
-      .select('customer_id, status, created_at')
-      .eq('status', 'not_started')
-      .is('deleted_at', null)
-      .lt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-
-    if (notStartedError) throw notStartedError;
-
-    const notStartedCount = notStartedData?.length || 0;
-    
-    // Get emails for not_started customers
-    let notStartedEmails = '';
-    if (notStartedCount > 0) {
-      const customerIds = notStartedData.map(d => d.customer_id);
-      const { data: customerData } = await supabase
-        .from('stripe_customers')
-        .select('customer_id, email')
-        .in('customer_id', customerIds)
-        .is('deleted_at', null);
-      
-      notStartedEmails = customerData?.map(c => c.email).join(', ') || '';
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders,
+      });
     }
 
-    // 2. Auto-fix not_started subscriptions older than 2 hours (simplified)
-    const { data: oldNotStarted, error: oldNotStartedError } = await supabase
-      .from('stripe_subscriptions')
-      .select('customer_id')
-      .eq('status', 'not_started')
-      .is('deleted_at', null)
-      .lt('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
+    console.log('🔍 Starting subscription monitoring check...');
 
-    let autoFixCount = 0;
-    if (!oldNotStartedError && oldNotStarted && oldNotStarted.length > 0) {
-      // Auto-fix these subscriptions
-      const { error: updateError } = await supabase
-        .from('stripe_subscriptions')
-        .update({ 
-          status: 'active',
-          updated_at: new Date().toISOString()
-        })
-        .in('customer_id', oldNotStarted.map(s => s.customer_id));
-        
-      if (!updateError) {
-        autoFixCount = oldNotStarted.length;
-      }
+    // ===== STEP 1: FIND USERS WHO SHOULD LOSE ACCESS =====
+    const { data: expiredUsers, error: expiredError } = await supabase
+      .from('stripe_customers')
+      .select(`
+        email,
+        customer_id,
+        payment_type,
+        stripe_orders!inner(
+          subscription_status,
+          cancel_at_period_end,
+          current_period_end,
+          status,
+          purchase_type
+        )
+      `)
+      .eq('deleted_at', null)
+      .eq('stripe_orders.deleted_at', null)
+      .eq('stripe_orders.status', 'completed')
+      .eq('stripe_orders.cancel_at_period_end', true)
+      .lte('stripe_orders.current_period_end', Math.floor(Date.now() / 1000));
+
+    if (expiredError) {
+      console.error('Error finding expired users:', expiredError);
+      throw expiredError;
     }
 
-    // 3. Check for NULL fields in recent subscriptions (simplified)
-    const { data: nullFieldsData, error: nullFieldsError } = await supabase
-      .from('stripe_subscriptions')
-      .select('customer_id, subscription_id, price_id, current_period_start')
-      .is('deleted_at', null)
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-      .or('subscription_id.is.null,price_id.is.null,current_period_start.is.null');
+    console.log(`Found ${expiredUsers?.length || 0} users with expired access`);
 
-    if (nullFieldsError) throw nullFieldsError;
+    // ===== STEP 2: FIND USERS LOSING ACCESS SOON =====
+    const sevenDaysFromNow = Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60);
+    const { data: soonToExpireUsers, error: soonError } = await supabase
+      .from('stripe_customers')
+      .select(`
+        email,
+        customer_id,
+        payment_type,
+        stripe_orders!inner(
+          subscription_status,
+          cancel_at_period_end,
+          current_period_end,
+          status,
+          purchase_type
+        )
+      `)
+      .eq('deleted_at', null)
+      .eq('stripe_orders.deleted_at', null)
+      .eq('stripe_orders.status', 'completed')
+      .eq('stripe_orders.cancel_at_period_end', true)
+      .gt('stripe_orders.current_period_end', Math.floor(Date.now() / 1000))
+      .lte('stripe_orders.current_period_end', sevenDaysFromNow);
 
-    const nullFieldsCount = nullFieldsData?.length || 0;
+    if (soonError) {
+      console.error('Error finding soon-to-expire users:', soonError);
+      throw soonError;
+    }
 
-    // 4. Get overall health metrics
-    const { data: healthData, error: healthError } = await supabase
-      .from('stripe_subscriptions')
-      .select('status')
-      .is('deleted_at', null);
+    console.log(`Found ${soonToExpireUsers?.length || 0} users losing access in next 7 days`);
 
-    if (healthError) throw healthError;
+    // ===== STEP 3: AUTO-CLEANUP EXPIRED USERS =====
+    let removedCount = 0;
+    const removedUsers: string[] = [];
 
-    const totalSubscriptions = healthData?.length || 0;
-    const activeCount = healthData?.filter(d => d.status === 'active').length || 0;
-    const notStartedCurrentCount = healthData?.filter(d => d.status === 'not_started').length || 0;
+    if (expiredUsers && expiredUsers.length > 0) {
+      for (const user of expiredUsers) {
+        try {
+          // Soft delete expired user
+          const { error: customerError } = await supabase
+            .from('stripe_customers')
+            .update({ 
+              deleted_at: new Date().toISOString(), 
+              updated_at: new Date().toISOString() 
+            })
+            .eq('customer_id', user.customer_id);
 
-    // 5. Log monitoring results
-    await supabase.from('sync_logs').insert({
-      customer_id: 'SYSTEM',
-      operation: 'automated_monitoring',
-      status: 'completed',
-      details: {
-        timestamp: new Date().toISOString(),
-        alerts: {
-          old_not_started_count: notStartedCount,
-          null_fields_count: nullFieldsCount,
-          affected_emails: notStartedEmails
-        },
-        health_metrics: {
-          total_subscriptions: totalSubscriptions,
-          active_count: activeCount,
-          current_not_started: notStartedCurrentCount,
-          success_rate: totalSubscriptions > 0 ? Math.round((activeCount / totalSubscriptions) * 100) : 100
+          if (customerError) {
+            console.error(`Error deleting customer ${user.email}:`, customerError);
+            continue;
+          }
+
+          // Soft delete their orders
+          const { error: orderError } = await supabase
+            .from('stripe_orders')
+            .update({ 
+              deleted_at: new Date().toISOString(), 
+              updated_at: new Date().toISOString() 
+            })
+            .eq('customer_id', user.customer_id);
+
+          if (orderError) {
+            console.error(`Error deleting orders for ${user.email}:`, orderError);
+            continue;
+          }
+
+          removedCount++;
+          removedUsers.push(user.email);
+          console.log(`✅ Removed expired user: ${user.email}`);
+
+        } catch (error) {
+          console.error(`Error processing user ${user.email}:`, error);
         }
       }
-    });
-
-    // 6. Prepare response
-    const alerts = [];
-    if (notStartedCount > 0) {
-      alerts.push(`🚨 ${notStartedCount} subscriptions stuck in not_started for >24h: ${notStartedEmails}`);
-    }
-    if (nullFieldsCount > 0) {
-      alerts.push(`⚠️ ${nullFieldsCount} subscriptions have NULL fields in recent data`);
-    }
-    if (notStartedCurrentCount > 0) {
-      alerts.push(`📊 Currently ${notStartedCurrentCount} not_started subscriptions (should be 0)`);
     }
 
-    const response = {
-      status: 'success',
-      timestamp: new Date().toISOString(),
-      monitoring_results: {
-        alerts: alerts.length > 0 ? alerts : ['✅ All subscription health checks passed'],
-        health_summary: {
-          total_subscriptions: totalSubscriptions,
-          active_subscriptions: activeCount,
-          success_rate: totalSubscriptions > 0 ? Math.round((activeCount / totalSubscriptions) * 100) : 100,
-          current_not_started: notStartedCurrentCount
-        },
-        actions_taken: [
-          '🔧 Auto-fixed subscriptions older than 2 hours',
-          '📊 Updated monitoring logs',
-          '✅ Health check completed'
-        ]
-      }
+    // ===== STEP 4: GET SUMMARY STATISTICS =====
+    const { data: summaryData, error: summaryError } = await supabase
+      .from('stripe_customers')
+      .select(`
+        customer_id,
+        stripe_orders!inner(
+          subscription_status,
+          cancel_at_period_end,
+          current_period_end,
+          status,
+          purchase_type
+        )
+      `)
+      .eq('deleted_at', null)
+      .eq('stripe_orders.deleted_at', null)
+      .eq('stripe_orders.status', 'completed');
+
+    if (summaryError) {
+      console.error('Error getting summary data:', summaryError);
+      throw summaryError;
+    }
+
+    const summary = {
+      total_users: summaryData?.length || 0,
+      active_monthly_users: summaryData?.filter(u => 
+        u.stripe_orders[0]?.subscription_status === 'active' && 
+        u.stripe_orders[0]?.cancel_at_period_end === false &&
+        u.stripe_orders[0]?.purchase_type === 'monthly'
+      ).length || 0,
+      lifetime_users: summaryData?.filter(u => 
+        u.stripe_orders[0]?.purchase_type === 'lifetime'
+      ).length || 0,
+      users_with_pending_cancellation: summaryData?.filter(u => 
+        u.stripe_orders[0]?.cancel_at_period_end === true &&
+        u.stripe_orders[0]?.current_period_end > Math.floor(Date.now() / 1000)
+      ).length || 0
     };
 
-    console.log('📊 Monitoring complete:', response);
-    return Response.json(response);
+    // ===== STEP 5: PREPARE RESPONSE =====
+    const response = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      expired_users_found: expiredUsers?.length || 0,
+      expired_users_removed: removedCount,
+      removed_users: removedUsers,
+      soon_to_expire_users: soonToExpireUsers?.map(user => ({
+        email: user.email,
+        access_expires_on: new Date(user.stripe_orders[0].current_period_end * 1000).toISOString().split('T')[0],
+        days_remaining: Math.ceil((user.stripe_orders[0].current_period_end - Math.floor(Date.now() / 1000)) / (24 * 60 * 60))
+      })) || [],
+      summary,
+      message: removedCount > 0 
+        ? `✅ Removed ${removedCount} expired users. ${summary.users_with_pending_cancellation} users have pending cancellations.`
+        : `✅ No expired users found. ${summary.users_with_pending_cancellation} users have pending cancellations.`
+    };
+
+    console.log('🎯 Monitoring check complete:', response.message);
+
+    return new Response(
+      JSON.stringify(response, null, 2),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
   } catch (error) {
-    console.error('❌ Monitoring error:', error);
-    
-    // Log the error
-    await supabase.from('sync_logs').insert({
-      customer_id: 'SYSTEM',
-      operation: 'automated_monitoring',
-      status: 'error',
-      error: error.message,
-      details: {
-        timestamp: new Date().toISOString(),
-        error_type: 'monitoring_failure'
+    console.error('Subscription monitoring error:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
       }
-    });
-
-    return Response.json({
-      status: 'error',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    );
   }
 }); 

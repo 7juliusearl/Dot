@@ -396,7 +396,8 @@ async function syncSubscriptionData(customerId: string, retryCount = 0) {
       };
       console.log('Using subscription data from Stripe:', { 
         id: subscriptionData.id, 
-        status: subscriptionData.status 
+        status: subscriptionData.status,
+        cancel_at_period_end: subscriptionData.cancel_at_period_end
       });
     } else {
       // No subscription found in Stripe
@@ -457,9 +458,13 @@ async function syncSubscriptionData(customerId: string, retryCount = 0) {
     console.log('Updating subscription with data:', {
       customer_id: customerId,
       status: updateData.status,
-      subscription_id: updateData.subscription_id
+      subscription_id: updateData.subscription_id,
+      cancel_at_period_end: updateData.cancel_at_period_end
     });
 
+    // ⭐ CRITICAL FIX: Update BOTH tables so TestFlight access control works
+    
+    // 1. Update stripe_subscriptions table (existing logic)
     let result;
     if (existingSubscription) {
       result = await supabase
@@ -476,8 +481,35 @@ async function syncSubscriptionData(customerId: string, retryCount = 0) {
     }
 
     if (result.error) {
-      console.error('Database update error:', result.error);
+      console.error('Database update error (stripe_subscriptions):', result.error);
       throw result.error;
+    }
+
+    // 2. ⭐ NEW: Also update stripe_orders table for TestFlight access control
+    const orderUpdateData = {
+      subscription_id: updateData.subscription_id,
+      price_id: updateData.price_id,
+      current_period_start: updateData.current_period_start,
+      current_period_end: updateData.current_period_end,
+      cancel_at_period_end: updateData.cancel_at_period_end,
+      subscription_status: updateData.status,
+      payment_method_brand: updateData.payment_method_brand,
+      payment_method_last4: updateData.payment_method_last4,
+      updated_at: new Date().toISOString()
+    };
+
+    const orderResult = await supabase
+      .from('stripe_orders')
+      .update(orderUpdateData)
+      .eq('customer_id', customerId)
+      .eq('status', 'completed')
+      .eq('purchase_type', 'monthly'); // Only update monthly orders
+
+    if (orderResult.error) {
+      console.error('Database update error (stripe_orders):', orderResult.error);
+      // Don't throw here - subscription table was updated successfully
+    } else {
+      console.log('✅ Also updated stripe_orders table for TestFlight access control');
     }
 
     console.log(`✅ Subscription data synced successfully for ${customerId} with status: ${updateData.status}`);
