@@ -42,7 +42,6 @@ const PricingHighlight = () => {
               <div className="text-center mb-4">
                 <h3 className="text-lg font-bold text-charcoal mb-1">Lifetime Access</h3>
                 <div className="mb-3">
-                  <span className="text-slate line-through text-sm">$299 App Store Price</span>
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-3xl font-bold text-charcoal">$99.99</span>
                     <span className="text-slate text-sm">one-time</span>
@@ -98,6 +97,9 @@ const PricingHighlight = () => {
                     <span className="text-3xl font-bold text-charcoal">$27.99</span>
                     <span className="text-slate text-sm">/year</span>
                   </div>
+                  <div className="text-center mt-1">
+                    <span className="text-slate text-xs">That's just $2.33/month</span>
+                  </div>
                   <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mt-1 font-medium">
                     BETA + APP STORE ACCESS
                   </span>
@@ -123,7 +125,7 @@ const PricingHighlight = () => {
                 </li>
                 <li className="flex items-center">
                   <Check className="text-sky w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="text-slate text-sm font-medium">30-day money-back guarantee</span>
+                  <span className="text-slate text-sm font-medium">If you cancel, you'll still get access to the app for one year</span>
                 </li>
               </ul>
 
