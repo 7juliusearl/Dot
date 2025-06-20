@@ -52,12 +52,50 @@ const Dashboard = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const testFlightLink = "https://testflight.apple.com/join/cGYTUPH1";
+  // TestFlight access states
+  const [testFlightLink, setTestFlightLink] = useState<string | null>(null);
+  const [testFlightLoading, setTestFlightLoading] = useState(false);
+  const [testFlightError, setTestFlightError] = useState<string | null>(null);
+
   const disclaimer = "This TestFlight link is for your personal use only. Sharing this public link is strictly prohibited. If we discover that this link has been shared, your beta access program will be immediately canceled without any refunds.";
 
   useEffect(() => {
     fetchSubscription();
   }, []);
+
+  const fetchTestFlightLink = async () => {
+    setTestFlightLoading(true);
+    setTestFlightError(null);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setTestFlightError('Please log in to access TestFlight');
+        return;
+      }
+
+      const response = await fetch('/.netlify/functions/get-testflight-link', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.hasAccess && result.testFlightLink) {
+        setTestFlightLink(result.testFlightLink);
+      } else {
+        setTestFlightError(result.error || 'Access denied');
+      }
+    } catch (error) {
+      console.error('TestFlight link error:', error);
+      setTestFlightError('Failed to verify TestFlight access');
+    } finally {
+      setTestFlightLoading(false);
+    }
+  };
 
   const fetchSubscription = async () => {
     try {
@@ -593,7 +631,7 @@ const Dashboard = () => {
                   </div>
                   <h2 className="text-xl font-semibold text-blue-900 mb-4">TestFlight Access</h2>
                   <p className="text-blue-800 mb-4">
-                    Your beta access is ready! Click the link below to join the TestFlight beta and download the app immediately.
+                    Your beta access is ready! Get your secure TestFlight link below.
                   </p>
                   
                   <div className="bg-blue-100 border border-blue-200 rounded-lg p-4 mb-6">
@@ -605,24 +643,71 @@ const Dashboard = () => {
                   </div>
 
                   <div className="text-center">
-                    <a
-                      href={testFlightLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center bg-sky text-slate px-6 py-3 rounded-full font-medium hover:shadow-lg transition-shadow"
-                    >
-                      Join TestFlight Beta <ExternalLink className="ml-2 w-5 h-5" />
-                    </a>
+                    {!testFlightLink && !testFlightError && (
+                      <button
+                        onClick={fetchTestFlightLink}
+                        disabled={testFlightLoading}
+                        className={`inline-flex items-center justify-center bg-sky text-slate px-6 py-3 rounded-full font-medium transition-all ${
+                          testFlightLoading ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-lg'
+                        }`}
+                      >
+                        {testFlightLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                            Verifying Access...
+                          </>
+                        ) : (
+                          <>
+                            Get TestFlight Link <ExternalLink className="ml-2 w-5 h-5" />
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {testFlightLink && (
+                      <a
+                        href={testFlightLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center bg-sky text-slate px-6 py-3 rounded-full font-medium hover:shadow-lg transition-shadow"
+                      >
+                        Join TestFlight Beta <ExternalLink className="ml-2 w-5 h-5" />
+                      </a>
+                    )}
+
+                    {testFlightError && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center justify-center">
+                          <AlertCircle className="text-red-600 w-5 h-5 mr-2" />
+                          <p className="text-red-700 font-medium">TestFlight Access Denied</p>
+                        </div>
+                        <p className="text-red-600 text-sm mt-2">{testFlightError}</p>
+                        {testFlightError.includes('canceled') && (
+                          <p className="text-red-600 text-sm mt-2">
+                            Your subscription has been canceled. TestFlight access is only available to active subscribers.
+                          </p>
+                        )}
+                        <button
+                          onClick={fetchTestFlightLink}
+                          className="mt-3 text-blue-600 hover:text-blue-700 font-medium text-sm"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <AlertTriangle className="text-red-600 w-5 h-5 mt-1 mr-3 flex-shrink-0" />
-                      <div>
-                        <h3 className="text-md font-semibold text-red-800 mb-2">Important Disclaimer:</h3>
-                        <p className="text-red-700 text-sm">{disclaimer}</p>
+
+                  {testFlightLink && (
+                    <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <AlertTriangle className="text-red-600 w-5 h-5 mt-1 mr-3 flex-shrink-0" />
+                        <div>
+                          <h3 className="text-md font-semibold text-red-800 mb-2">Important Disclaimer:</h3>
+                          <p className="text-red-700 text-sm">{disclaimer}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {subscription.subscription_status === 'active' && 
