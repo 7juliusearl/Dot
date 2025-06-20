@@ -38,7 +38,6 @@ export default async (request: Request) => {
         customer_id,
         email,
         payment_type,
-        subscription_status,
         beta_user,
         deleted_at
       `)
@@ -57,10 +56,10 @@ export default async (request: Request) => {
       });
     }
 
-    // Check if user has completed payment
+    // Check if user has completed payment and get subscription status
     const { data: orderData, error: orderError } = await supabase
       .from('stripe_orders')
-      .select('status, purchase_type, created_at')
+      .select('status, purchase_type, subscription_status, created_at')
       .eq('customer_id', customerData.customer_id)
       .eq('status', 'completed')
       .is('deleted_at', null)
@@ -80,16 +79,16 @@ export default async (request: Request) => {
     }
 
     // Check if subscription is active (not canceled)
-    const isActive = customerData.subscription_status !== 'canceled' && 
-                    customerData.subscription_status !== 'unpaid' &&
-                    customerData.subscription_status !== 'past_due';
+    const isActive = orderData.subscription_status !== 'canceled' && 
+                    orderData.subscription_status !== 'unpaid' &&
+                    orderData.subscription_status !== 'past_due';
 
     if (!isActive) {
       return new Response(JSON.stringify({ 
         error: 'Subscription is not active',
         hasAccess: false,
         reason: 'subscription_canceled',
-        status: customerData.subscription_status
+        status: orderData.subscription_status
       }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
@@ -105,7 +104,7 @@ export default async (request: Request) => {
       userInfo: {
         email: customerData.email,
         paymentType: customerData.payment_type,
-        subscriptionStatus: customerData.subscription_status,
+        subscriptionStatus: orderData.subscription_status,
         betaUser: customerData.beta_user
       }
     }), {
