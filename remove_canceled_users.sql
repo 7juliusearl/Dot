@@ -1,26 +1,37 @@
 -- Remove Canceled Users from TestFlight Access
--- This script helps you identify and soft-delete users who have canceled
+-- This script helps you identify and soft-delete users who have canceled AND lost access
 
--- ===== STEP 1: IDENTIFY CANCELED USERS =====
--- First, let's see who has canceled (useful to identify who to remove)
+-- ===== STEP 1: IDENTIFY USERS WHO SHOULD LOSE TESTFLIGHT ACCESS =====
+-- These are users who canceled AND their access period has expired
 
 SELECT 
   '=== USERS TO REMOVE FROM TESTFLIGHT ===' as info,
   sc.email,
   sc.payment_type,
   so.subscription_status,
+  so.cancel_at_period_end,
+  CASE 
+    WHEN so.current_period_end IS NOT NULL THEN 
+      to_timestamp(so.current_period_end)::date
+    ELSE NULL
+  END as access_expires,
   sc.created_at,
   CASE 
-    WHEN so.subscription_status = 'canceled' THEN '❌ CANCELED'
+    WHEN so.subscription_status = 'canceled' AND so.cancel_at_period_end = false THEN '❌ CANCELED IMMEDIATELY'
+    WHEN so.cancel_at_period_end = true AND so.current_period_end <= EXTRACT(EPOCH FROM NOW()) THEN '❌ CANCELED - ACCESS EXPIRED'
     WHEN so.subscription_status = 'unpaid' THEN '💳 UNPAID'
     WHEN so.subscription_status = 'past_due' THEN '⏰ PAST DUE'
     ELSE '❓ OTHER'
   END as reason
 FROM stripe_customers sc
 LEFT JOIN stripe_orders so ON sc.customer_id = so.customer_id
-WHERE so.subscription_status IN ('canceled', 'unpaid', 'past_due')
-  AND sc.deleted_at IS NULL
+WHERE sc.deleted_at IS NULL
   AND so.deleted_at IS NULL
+  AND so.status = 'completed'
+  AND (
+    (so.subscription_status IN ('canceled', 'unpaid', 'past_due') AND so.cancel_at_period_end = false)
+    OR (so.cancel_at_period_end = true AND so.current_period_end <= EXTRACT(EPOCH FROM NOW()))
+  )
 ORDER BY sc.created_at DESC;
 
 -- Alternative: Find users who might have canceled subscriptions

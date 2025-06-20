@@ -59,7 +59,7 @@ export default async (request: Request) => {
     // Check if user has completed payment and get subscription status
     const { data: orderData, error: orderError } = await supabase
       .from('stripe_orders')
-      .select('status, purchase_type, subscription_status, created_at')
+      .select('status, purchase_type, subscription_status, cancel_at_period_end, current_period_end, created_at')
       .eq('customer_id', customerData.customer_id)
       .eq('status', 'completed')
       .is('deleted_at', null)
@@ -78,17 +78,53 @@ export default async (request: Request) => {
       });
     }
 
-    // Check if subscription is active (not canceled)
-    const isActive = orderData.subscription_status !== 'canceled' && 
-                    orderData.subscription_status !== 'unpaid' &&
-                    orderData.subscription_status !== 'past_due';
+    // Check if user has valid access
+    const now = Math.floor(Date.now() / 1000);
+    let hasAccess = false;
+    let accessReason = '';
 
-    if (!isActive) {
+    if (orderData.purchase_type === 'lifetime') {
+      // Lifetime users always have access unless explicitly canceled
+      hasAccess = orderData.subscription_status !== 'canceled';
+      accessReason = hasAccess ? 'lifetime_access' : 'lifetime_canceled';
+    } else {
+      // For subscription users, check various scenarios
+      if (orderData.subscription_status === 'active' && !orderData.cancel_at_period_end) {
+        // Active subscription, not canceled
+        hasAccess = true;
+        accessReason = 'active_subscription';
+      } else if (orderData.cancel_at_period_end && orderData.current_period_end && orderData.current_period_end > now) {
+        // Canceled but still within the paid period
+        hasAccess = true;
+        accessReason = 'canceled_but_active_until_period_end';
+      } else if (orderData.subscription_status === 'canceled' || 
+                 orderData.subscription_status === 'unpaid' || 
+                 orderData.subscription_status === 'past_due' ||
+                 (orderData.cancel_at_period_end && orderData.current_period_end && orderData.current_period_end <= now)) {
+        // Truly canceled or expired
+        hasAccess = false;
+        accessReason = 'subscription_ended';
+      } else {
+        // Default to checking if subscription is active
+        hasAccess = orderData.subscription_status === 'active';
+        accessReason = hasAccess ? 'active_subscription' : 'subscription_inactive';
+      }
+    }
+
+    if (!hasAccess) {
+      const errorMessage = accessReason === 'subscription_ended' 
+        ? 'Your subscription has ended or been canceled'
+        : accessReason === 'lifetime_canceled'
+        ? 'Your lifetime access has been canceled'
+        : 'Subscription is not active';
+
       return new Response(JSON.stringify({ 
-        error: 'Subscription is not active',
+        error: errorMessage,
         hasAccess: false,
-        reason: 'subscription_canceled',
-        status: orderData.subscription_status
+        reason: accessReason,
+        status: orderData.subscription_status,
+        cancelAtPeriodEnd: orderData.cancel_at_period_end,
+        currentPeriodEnd: orderData.current_period_end
       }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' }
