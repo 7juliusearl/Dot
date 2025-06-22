@@ -29,8 +29,8 @@ const CountdownSection = () => {
     threshold: 0.1,
   });
 
-  // Real user count from your database
-  const [currentUsers, setCurrentUsers] = useState(0);
+  // Real lifetime user count from your database
+  const [currentLifetimeUsers, setCurrentLifetimeUsers] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
   // Waitlist state
@@ -38,37 +38,37 @@ const CountdownSection = () => {
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [waitlistMessage, setWaitlistMessage] = useState('');
   
-  const maxUsers = 150; // Total spots available for current batch
-  const spotsLeft = maxUsers - currentUsers;
-  const isSpotAvailable = spotsLeft > 0;
+  const maxLifetimeUsers = 150; // Total lifetime spots available
+  const lifetimeSpotsLeft = maxLifetimeUsers - currentLifetimeUsers;
+  const isLifetimeSpotAvailable = lifetimeSpotsLeft > 0;
 
   useEffect(() => {
-    const fetchUserCount = async () => {
+    const fetchLifetimeUserCount = async () => {
       try {
-        console.log('🔍 Fetching user count via Netlify function...');
+        console.log('🔍 Fetching lifetime user count via Netlify function...');
         
         // Call our Netlify function that uses service role to bypass RLS
         const response = await fetch('/api/user-count');
         const data = await response.json();
 
-        console.log('📊 User count response:', data);
+        console.log('📊 Lifetime user count response:', data);
 
         if (response.ok && data.success) {
-          console.log('✅ Successfully fetched count:', data.count);
-          setCurrentUsers(data.count || 0);
+          console.log('✅ Successfully fetched lifetime count:', data.count);
+          setCurrentLifetimeUsers(data.count || 0);
         } else {
-          console.error('❌ Error fetching user count:', data.error);
-          setCurrentUsers(0);
+          console.error('❌ Error fetching lifetime user count:', data.error);
+          setCurrentLifetimeUsers(0);
         }
       } catch (error) {
-        console.error('💥 Failed to fetch user count:', error);
-        setCurrentUsers(0);
+        console.error('💥 Failed to fetch lifetime user count:', error);
+        setCurrentLifetimeUsers(0);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchUserCount();
+    fetchLifetimeUserCount();
   }, []);
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
@@ -103,7 +103,7 @@ const CountdownSection = () => {
         }
       } else {
         setWaitlistStatus('success');
-        setWaitlistMessage('🎉 Thank you for joining the waitlist! You\'ll be the first to know when Batch 2 opens. Please check your email (including spam folder) for updates and keep an eye out for our notification.');
+        setWaitlistMessage('🎉 Thank you for joining the waitlist! You\'ll be the first to know when lifetime access is available again. Please check your email (including spam folder) for updates and keep an eye out for our notification.');
         setWaitlistEmail('');
       }
     } catch (error) {
@@ -127,13 +127,13 @@ const CountdownSection = () => {
           <div className="bg-white rounded-xl shadow-xl drop-shadow-xl p-6 border-3 border-red-500/50">
             {/* Header with Status Icon */}
             <div className="flex items-center justify-center mb-4">
-              {isSpotAvailable ? (
+              {isLifetimeSpotAvailable ? (
                 <AlertCircle className="text-red-600 w-5 h-5 mr-2" />
               ) : (
                 <CheckCircle className="text-gray-600 w-5 h-5 mr-2" />
               )}
-              <span className={`font-semibold text-base ${isSpotAvailable ? 'text-red-700' : 'text-gray-700'}`}>
-                {isSpotAvailable ? 'Limited Beta Spots Available' : 'Batch 1 Full - Join Waitlist'}
+              <span className={`font-semibold text-base ${isLifetimeSpotAvailable ? 'text-red-700' : 'text-gray-700'}`}>
+                {isLifetimeSpotAvailable ? 'Limited Lifetime Access Available' : 'Lifetime Access Full - Join Waitlist'}
               </span>
             </div>
 
@@ -141,42 +141,42 @@ const CountdownSection = () => {
             <h2 className="text-2xl md:text-3xl font-bold text-charcoal mb-3 text-center">
               {isLoading ? (
                 'Loading...'
-              ) : isSpotAvailable ? (
-                <>Only <span className="text-red-600">{spotsLeft}</span> Spots Left</>
+              ) : isLifetimeSpotAvailable ? (
+                <>Only <span className="text-red-600">{lifetimeSpotsLeft}</span> Lifetime Spots Left</>
               ) : (
-                'Batch 1 Complete'
+                'Lifetime Access Full'
               )}
             </h2>
 
                           {/* Progress Section */}
              <div className="mb-6">
                <div className="flex justify-between text-base font-medium text-charcoal mb-2">
-                <span>{isLoading ? 'Loading...' : `${currentUsers} / ${maxUsers} Users`}</span>
-                <span className={`${isSpotAvailable ? 'text-red-600' : 'text-gray-600'}`}>
-                  {isLoading ? '...' : isSpotAvailable ? `${spotsLeft} left` : 'Full'}
+                <span>{isLoading ? 'Loading...' : `${currentLifetimeUsers} / ${maxLifetimeUsers} Lifetime Users`}</span>
+                <span className={`${isLifetimeSpotAvailable ? 'text-red-600' : 'text-gray-600'}`}>
+                  {isLoading ? '...' : isLifetimeSpotAvailable ? `${lifetimeSpotsLeft} left` : 'Full'}
                 </span>
               </div>
               
               <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
                 <div 
                   className={`h-3 rounded-full transition-all duration-300 ${
-                    isSpotAvailable ? 'bg-gradient-to-r from-green-500 to-red-500' : 'bg-gray-500'
+                    isLifetimeSpotAvailable ? 'bg-gradient-to-r from-green-500 to-red-500' : 'bg-gray-500'
                   }`}
-                  style={{ width: `${(currentUsers / maxUsers) * 100}%` }}
+                  style={{ width: `${(currentLifetimeUsers / maxLifetimeUsers) * 100}%` }}
                 ></div>
               </div>
 
               {/* Status Message */}
               <div className="text-center mb-4">
-                {isSpotAvailable ? (
+                {isLifetimeSpotAvailable ? (
                   <p className="text-slate text-base">
-                    <span className="font-semibold text-green-600">{currentUsers}</span> wedding professionals 
-                    have already secured their spot in our exclusive beta program.
+                    <span className="font-semibold text-green-600">{currentLifetimeUsers}</span> wedding professionals 
+                    have already secured their lifetime access.
                   </p>
                 ) : (
                   <p className="text-slate text-base">
-                    Our first batch is now complete! Join the waitlist to be notified when 
-                    <strong> Batch 2</strong> opens.
+                    All lifetime access spots are now taken! Join the waitlist to be notified if 
+                    <strong> lifetime access</strong> becomes available again.
                   </p>
                 )}
               </div>
@@ -184,20 +184,20 @@ const CountdownSection = () => {
 
             {/* CTA Section */}
             <div className="text-center">
-              {isSpotAvailable ? (
+              {isLifetimeSpotAvailable ? (
                 <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg p-4">
                   <h3 className="text-lg font-bold mb-2">
                     Last Chance: Lifetime Access Ending
                   </h3>
                   <p className="mb-3 opacity-90 text-sm">
-                    Once we hit 150 users, lifetime access will be permanently discontinued. 
+                    Once we hit 150 lifetime users, lifetime access will be permanently discontinued. 
                     Future pricing will be yearly only - secure your lifetime deal now!
                   </p>
                   <button 
                     onClick={() => window.location.href = '/payment?plan=lifetime'}
                     className="bg-white text-red-600 px-6 py-2 rounded-full font-semibold hover:shadow-lg transition-shadow text-sm"
                   >
-                    Get Your Spot Now
+                    Get Lifetime Access Now
                   </button>
                 </div>
               ) : (
@@ -207,7 +207,7 @@ const CountdownSection = () => {
                     Join the Waitlist
                   </h3>
                   <p className="mb-3 opacity-90 text-sm">
-                    Be the first to know when Batch 2 opens for beta access.
+                    Be the first to know if lifetime access becomes available again.
                   </p>
                   
                                      {/* Waitlist Email Form */}

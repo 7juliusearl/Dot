@@ -14,15 +14,16 @@ export default async (req: Request, context: Context) => {
       Netlify.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Count only lifetime purchases (non-deleted)
+    // Count ONLY lifetime users with completed orders
     const { count, error } = await supabase
       .from('stripe_orders')
       .select('*', { count: 'exact', head: true })
-      .eq('purchase_type', 'lifetime')
-      .is('deleted_at', null);
+      .eq('status', 'completed')
+      .is('deleted_at', null)
+      .eq('purchase_type', 'lifetime');
 
     if (error) {
-      console.error('Error counting users:', error);
+      console.error('Error counting lifetime users:', error);
       return new Response(JSON.stringify({ 
         error: 'Database error',
         count: 0 
@@ -32,9 +33,30 @@ export default async (req: Request, context: Context) => {
       });
     }
 
+    // Also get breakdown for debugging
+    const { data: breakdown, error: breakdownError } = await supabase
+      .from('stripe_orders')
+      .select('purchase_type')
+      .eq('status', 'completed')
+      .is('deleted_at', null)
+      .in('purchase_type', ['lifetime', 'monthly', 'yearly']);
+
+    let debugInfo = {};
+    if (!breakdownError && breakdown) {
+      debugInfo = {
+        lifetime: breakdown.filter(o => o.purchase_type === 'lifetime').length,
+        monthly: breakdown.filter(o => o.purchase_type === 'monthly').length,
+        yearly: breakdown.filter(o => o.purchase_type === 'yearly').length
+      };
+    }
+
+    console.log('User count breakdown:', debugInfo);
+    console.log('Lifetime users count:', count);
+
     return new Response(JSON.stringify({ 
       count: count || 0,
-      success: true 
+      success: true,
+      breakdown: debugInfo
     }), {
       status: 200,
       headers: { 
