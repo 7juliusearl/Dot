@@ -33,20 +33,31 @@ export default async (req: Request, context: Context) => {
       });
     }
 
-    // Also get breakdown for debugging
+    // Also get breakdown for debugging (including $27.99 orders as lifetime)
     const { data: breakdown, error: breakdownError } = await supabase
       .from('stripe_orders')
-      .select('purchase_type')
+      .select('purchase_type, amount_total')
       .eq('status', 'completed')
       .is('deleted_at', null)
       .in('purchase_type', ['lifetime', 'monthly', 'yearly']);
 
     let debugInfo = {};
     if (!breakdownError && breakdown) {
+      // Count $27.99 orders as lifetime regardless of their purchase_type
+      const lifetimeCount = breakdown.filter(o => 
+        o.purchase_type === 'lifetime' || o.amount_total === 2799
+      ).length;
+      const monthlyCount = breakdown.filter(o => 
+        o.purchase_type === 'monthly' && o.amount_total !== 2799
+      ).length;
+      const yearlyCount = breakdown.filter(o => 
+        o.purchase_type === 'yearly' && o.amount_total !== 2799
+      ).length;
+      
       debugInfo = {
-        lifetime: breakdown.filter(o => o.purchase_type === 'lifetime').length,
-        monthly: breakdown.filter(o => o.purchase_type === 'monthly').length,
-        yearly: breakdown.filter(o => o.purchase_type === 'yearly').length
+        lifetime: lifetimeCount,
+        monthly: monthlyCount,
+        yearly: yearlyCount
       };
     }
 

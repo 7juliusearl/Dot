@@ -38,7 +38,7 @@ const CountdownSection = () => {
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [waitlistMessage, setWaitlistMessage] = useState('');
   
-  const maxLifetimeUsers = 150; // Total lifetime spots available
+  const maxLifetimeUsers = 100; // Total lifetime spots available
   const lifetimeSpotsLeft = maxLifetimeUsers - currentLifetimeUsers;
   const isLifetimeSpotAvailable = lifetimeSpotsLeft > 0;
 
@@ -190,7 +190,7 @@ const CountdownSection = () => {
                     Last Chance: Lifetime Access Ending
                   </h3>
                   <p className="mb-3 opacity-90 text-sm">
-                    Once we hit 150 lifetime users, lifetime access will be permanently discontinued. 
+                    Once we hit 100 lifetime users, lifetime access will be permanently discontinued. 
                     Future pricing will be yearly only - secure your lifetime deal now!
                   </p>
                   <button 
