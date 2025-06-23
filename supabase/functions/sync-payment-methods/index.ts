@@ -1,290 +1,277 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@14.21.0'
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import Stripe from 'npm:stripe@17.7.0';
+import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '', 
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
 
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
+  appInfo: { name: 'Payment Method Sync', version: '1.0.0' },
+});
+
+// Validate that last4 is actually 4 digits
+function validateLast4(last4: string | null | undefined): boolean {
+  if (!last4) return false;
+  return /^[0-9]{4}$/.test(last4);
+}
+
+// Sync payment method data for a single customer
+async function syncCustomerPaymentMethod(customerId: string): Promise<any> {
+  console.log(`🔄 Syncing payment method for customer: ${customerId}`);
+  
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
-      apiVersion: '2023-10-16',
-    })
-
-    console.log('Starting payment method sync for existing users...')
-
-    // Get all users needing payment method sync (simplified query)
-    const { data: ordersNeedingSync, error: fetchError } = await supabase
+    // Method 1: Get from customer's payment methods
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: customerId,
+      type: 'card',
+      limit: 5
+    });
+    
+    let paymentMethodData = {
+      payment_method_brand: 'card',
+      payment_method_last4: '****'
+    };
+    
+    if (paymentMethods.data && paymentMethods.data.length > 0) {
+      for (const pm of paymentMethods.data) {
+        if (pm.card?.brand && pm.card?.last4) {
+          const brand = pm.card.brand;
+          const last4 = pm.card.last4;
+          
+          if (validateLast4(last4)) {
+            paymentMethodData = {
+              payment_method_brand: brand,
+              payment_method_last4: last4
+            };
+            console.log(`✅ Found real card data: ${brand} ending in ${last4}`);
+            break; // Use first valid payment method
+          }
+        }
+      }
+    }
+    
+    // Method 2: If no payment methods, try getting from subscriptions
+    if (paymentMethodData.payment_method_last4 === '****') {
+      console.log('🔄 Trying subscription payment methods...');
+      
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        limit: 3,
+        expand: ['data.default_payment_method']
+      });
+      
+      for (const subscription of subscriptions.data) {
+        const pm = subscription.default_payment_method as Stripe.PaymentMethod;
+        if (pm?.card?.brand && pm?.card?.last4) {
+          const brand = pm.card.brand;
+          const last4 = pm.card.last4;
+          
+          if (validateLast4(last4)) {
+            paymentMethodData = {
+              payment_method_brand: brand,
+              payment_method_last4: last4
+            };
+            console.log(`✅ Found real card data from subscription: ${brand} ending in ${last4}`);
+            break;
+          }
+        }
+      }
+    }
+    
+    // Method 3: If still no data, try recent payment intents
+    if (paymentMethodData.payment_method_last4 === '****') {
+      console.log('🔄 Trying recent payment intents...');
+      
+      const paymentIntents = await stripe.paymentIntents.list({
+        customer: customerId,
+        limit: 5,
+        expand: ['data.payment_method']
+      });
+      
+      for (const pi of paymentIntents.data) {
+        const pm = pi.payment_method as Stripe.PaymentMethod;
+        if (pm?.card?.brand && pm?.card?.last4) {
+          const brand = pm.card.brand;
+          const last4 = pm.card.last4;
+          
+          if (validateLast4(last4)) {
+            paymentMethodData = {
+              payment_method_brand: brand,
+              payment_method_last4: last4
+            };
+            console.log(`✅ Found real card data from payment intent: ${brand} ending in ${last4}`);
+            break;
+          }
+        }
+      }
+    }
+    
+    // Update database with real or clean placeholder data
+    const { error: orderError } = await supabase
       .from('stripe_orders')
-      .select('customer_id, payment_intent_id, purchase_type, email')
-      .eq('status', 'completed')
-      .is('deleted_at', null)
-      .eq('payment_method_last4', '****')
-      .order('created_at', { ascending: false })
+      .update({
+        payment_method_brand: paymentMethodData.payment_method_brand,
+        payment_method_last4: paymentMethodData.payment_method_last4,
+        updated_at: new Date().toISOString()
+      })
+      .eq('customer_id', customerId)
+      .eq('status', 'completed');
 
-    if (fetchError) {
-      throw new Error(`Failed to fetch orders: ${fetchError.message}`)
+    if (orderError) {
+      console.error(`❌ Failed to update orders for ${customerId}:`, orderError);
+      throw orderError;
     }
 
-    console.log(`Found ${ordersNeedingSync.length} orders needing payment method sync`)
+    // Also update subscriptions if they exist
+    const { error: subError } = await supabase
+      .from('stripe_subscriptions')
+      .update({
+        payment_method_brand: paymentMethodData.payment_method_brand,
+        payment_method_last4: paymentMethodData.payment_method_last4,
+        updated_at: new Date().toISOString()
+      })
+      .eq('customer_id', customerId);
 
-    const results = {
-      total_orders: ordersNeedingSync.length,
-      successful_syncs: 0,
-      failed_syncs: 0,
-      errors: [] as any[],
-      synced_users: [] as any[]
+    // Don't throw on subscription errors since not all customers have subscriptions
+    if (subError) {
+      console.log(`ℹ️ Note: Could not update subscription for ${customerId} (may not exist)`);
     }
 
-    // Process each order
-    for (const order of ordersNeedingSync) {
-      try {
-        console.log(`Processing customer: ${order.customer_id} (${order.email})`)
-        
-        let payment_method_brand = 'card'
-        let payment_method_last4 = '****'
-        let sync_method = 'none'
-
-        // Method 1: Try to get from active subscription
-        try {
-          const subscriptions = await stripe.subscriptions.list({
-            customer: order.customer_id,
-            status: 'active',
-            limit: 1,
-            expand: ['data.default_payment_method']
-          })
-
-          if (subscriptions && subscriptions.data && subscriptions.data.length > 0) {
-            const subscription = subscriptions.data[0]
-            const paymentMethod = subscription.default_payment_method as Stripe.PaymentMethod
-            
-            if (paymentMethod && paymentMethod.card) {
-              payment_method_brand = paymentMethod.card.brand || 'card'
-              payment_method_last4 = paymentMethod.card.last4 || '****'
-              sync_method = 'active_subscription'
-              console.log(`✅ Got payment method from active subscription: ${payment_method_brand} ending in ${payment_method_last4}`)
-            }
-          }
-        } catch (error: any) {
-          console.log(`No active subscription found for ${order.customer_id}:`, error?.message || 'Unknown error')
+    // Log the sync result
+    await supabase
+      .from('sync_logs')
+      .insert({
+        customer_id: customerId,
+        operation: 'payment_method_sync_from_stripe',
+        status: paymentMethodData.payment_method_last4 === '****' ? 'no_data_found' : 'success',
+        details: {
+          payment_method_brand: paymentMethodData.payment_method_brand,
+          payment_method_last4: paymentMethodData.payment_method_last4,
+          timestamp: new Date().toISOString(),
+          methods_tried: ['customer_payment_methods', 'subscription_payment_methods', 'payment_intents']
         }
+      });
 
-        // Method 2: Try to get from payment intent if we have one
-        if (payment_method_last4 === '****' && order.payment_intent_id && order.payment_intent_id.startsWith('pi_')) {
-          try {
-            const paymentIntent = await stripe.paymentIntents.retrieve(order.payment_intent_id, {
-              expand: ['payment_method']
-            })
+    return {
+      customer_id: customerId,
+      success: true,
+      payment_method_brand: paymentMethodData.payment_method_brand,
+      payment_method_last4: paymentMethodData.payment_method_last4,
+      has_real_data: paymentMethodData.payment_method_last4 !== '****'
+    };
 
-            const paymentMethod = paymentIntent.payment_method as Stripe.PaymentMethod
-            if (paymentMethod?.card) {
-              payment_method_brand = paymentMethod.card.brand || 'card'
-              payment_method_last4 = paymentMethod.card.last4 || '****'
-              sync_method = 'payment_intent'
-              console.log(`✅ Got payment method from payment intent: ${payment_method_brand} ending in ${payment_method_last4}`)
-            }
-          } catch (error: any) {
-            console.log(`Failed to get payment method from payment intent ${order.payment_intent_id}:`, error.message)
-          }
+  } catch (error) {
+    console.error(`❌ Error syncing customer ${customerId}:`, error);
+    
+    // Log the error
+    await supabase
+      .from('sync_logs')
+      .insert({
+        customer_id: customerId,
+        operation: 'payment_method_sync_from_stripe',
+        status: 'error',
+        details: {
+          error: error.message,
+          timestamp: new Date().toISOString()
         }
+      });
 
-        // Method 3: Try to get from customer's payment methods
-        if (payment_method_last4 === '****') {
-          try {
-            const paymentMethods = await stripe.paymentMethods.list({
-              customer: order.customer_id,
-              type: 'card',
-              limit: 1
-            })
-
-            if (paymentMethods && paymentMethods.data && paymentMethods.data.length > 0) {
-              const paymentMethod = paymentMethods.data[0]
-              if (paymentMethod && paymentMethod.card) {
-                payment_method_brand = paymentMethod.card.brand || 'card'
-                payment_method_last4 = paymentMethod.card.last4 || '****'
-                sync_method = 'customer_payment_methods'
-                console.log(`✅ Got payment method from customer payment methods: ${payment_method_brand} ending in ${payment_method_last4}`)
-              }
-            }
-          } catch (error: any) {
-            console.log(`Failed to get payment methods for customer ${order.customer_id}:`, error?.message || 'Unknown error')
-          }
-        }
-
-        // Method 4: Try to get from any subscription (including canceled)
-        if (payment_method_last4 === '****') {
-          try {
-            const allSubscriptions = await stripe.subscriptions.list({
-              customer: order.customer_id,
-              status: 'all',
-              limit: 5,
-              expand: ['data.default_payment_method']
-            })
-
-            if (allSubscriptions && allSubscriptions.data) {
-              for (const subscription of allSubscriptions.data) {
-                const paymentMethod = subscription.default_payment_method as Stripe.PaymentMethod
-                if (paymentMethod && paymentMethod.card) {
-                  payment_method_brand = paymentMethod.card.brand || 'card'
-                  payment_method_last4 = paymentMethod.card.last4 || '****'
-                  sync_method = 'any_subscription'
-                  console.log(`✅ Got payment method from subscription ${subscription.id}: ${payment_method_brand} ending in ${payment_method_last4}`)
-                  break
-                }
-              }
-            }
-          } catch (error: any) {
-            console.log(`Failed to get subscriptions for customer ${order.customer_id}:`, error?.message || 'Unknown error')
-          }
-        }
-
-        // Update database if we got real card data
-        if (payment_method_last4 !== '****' && payment_method_last4.match(/^[0-9]{4}$/)) {
-          // Update stripe_orders
-          const { error: orderError } = await supabase
-            .from('stripe_orders')
-            .update({
-              payment_method_brand,
-              payment_method_last4,
-              updated_at: new Date().toISOString()
-            })
-            .eq('customer_id', order.customer_id)
-            .eq('status', 'completed')
-            .is('deleted_at', null)
-
-          if (orderError) {
-            throw new Error(`Failed to update orders: ${orderError.message}`)
-          }
-
-          // Update stripe_subscriptions
-          const { error: subError } = await supabase
-            .from('stripe_subscriptions')
-            .update({
-              payment_method_brand,
-              payment_method_last4,
-              updated_at: new Date().toISOString()
-            })
-            .eq('customer_id', order.customer_id)
-            .is('deleted_at', null)
-
-          if (subError) {
-            console.warn(`Failed to update subscriptions for ${order.customer_id}: ${subError.message}`)
-          }
-
-          // Log the successful sync
-          await supabase
-            .from('sync_logs')
-            .insert({
-              customer_id: order.customer_id,
-              operation: 'payment_method_sync_from_stripe',
-              status: 'success',
-              details: {
-                email: order.email,
-                payment_method_brand,
-                payment_method_last4,
-                sync_method,
-                timestamp: new Date().toISOString()
-              }
-            })
-
-          results.successful_syncs++
-          results.synced_users.push({
-            customer_id: order.customer_id,
-            email: order.email,
-            payment_method_brand,
-            payment_method_last4,
-            sync_method
-          })
-
-          console.log(`✅ Successfully synced ${order.customer_id}: ${payment_method_brand} ending in ${payment_method_last4}`)
-        } else {
-          // Log failed sync
-          await supabase
-            .from('sync_logs')
-            .insert({
-              customer_id: order.customer_id,
-              operation: 'payment_method_sync_from_stripe',
-              status: 'failed',
-              details: {
-                email: order.email,
-                error: 'No valid payment method found in Stripe',
-                timestamp: new Date().toISOString()
-              }
-            })
-
-          results.failed_syncs++
-          results.errors.push({
-            customer_id: order.customer_id,
-            email: order.email,
-            error: 'No valid payment method found in Stripe'
-          })
-
-          console.log(`❌ Failed to sync ${order.customer_id}: No valid payment method found`)
-        }
-
-        // Add small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100))
-
-      } catch (error: any) {
-        console.error(`Error processing customer ${order.customer_id}:`, error)
-        results.failed_syncs++
-        results.errors.push({
-          customer_id: order.customer_id,
-          email: order.email || 'unknown',
-          error: error.message
-        })
-
-        // Log the error
-        await supabase
-          .from('sync_logs')
-          .insert({
-            customer_id: order.customer_id,
-            operation: 'payment_method_sync_from_stripe',
-            status: 'error',
-            details: {
-              error: error.message,
-              timestamp: new Date().toISOString()
-            }
-          })
-      }
-    }
-
-    console.log('Payment method sync completed:', results)
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Payment method sync completed',
-        results
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    )
-
-  } catch (error: any) {
-    console.error('Error in payment method sync:', error)
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    )
+    return {
+      customer_id: customerId,
+      success: false,
+      error: error.message
+    };
   }
-}) 
+}
+
+Deno.serve(async (req) => {
+  try {
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { 
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        }
+      });
+    }
+
+    if (req.method !== 'POST') {
+      return new Response('Method not allowed', { status: 405 });
+    }
+
+    const body = await req.json();
+    const { customer_id, sync_all = false, limit = 10 } = body;
+
+    console.log('🚀 Payment method sync started', { customer_id, sync_all, limit });
+
+    let results = [];
+
+    if (customer_id) {
+      // Sync specific customer
+      console.log(`Syncing specific customer: ${customer_id}`);
+      const result = await syncCustomerPaymentMethod(customer_id);
+      results.push(result);
+    } else if (sync_all) {
+      // Sync multiple customers with **** payment method data
+      console.log(`Syncing up to ${limit} customers with placeholder data...`);
+      
+      const { data: customers, error } = await supabase
+        .from('stripe_orders')
+        .select('customer_id')
+        .eq('status', 'completed')
+        .eq('payment_method_last4', '****')
+        .limit(limit);
+
+      if (error) {
+        throw new Error(`Failed to fetch customers: ${error.message}`);
+      }
+
+      console.log(`Found ${customers?.length || 0} customers to sync`);
+
+      // Process customers in batches to avoid timeouts
+      for (const customer of customers || []) {
+        const result = await syncCustomerPaymentMethod(customer.customer_id);
+        results.push(result);
+        
+        // Small delay between customers to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    } else {
+      return Response.json(
+        { error: 'Either customer_id or sync_all=true must be provided' }, 
+        { status: 400 }
+      );
+    }
+
+    const summary = {
+      total_processed: results.length,
+      successful_syncs: results.filter(r => r.success).length,
+      found_real_data: results.filter(r => r.success && r.has_real_data).length,
+      errors: results.filter(r => !r.success).length
+    };
+
+    console.log('✅ Payment method sync completed', summary);
+
+    return Response.json({
+      success: true,
+      summary,
+      results
+    });
+
+  } catch (error) {
+    console.error('❌ Payment method sync error:', error);
+    return Response.json(
+      { error: error.message }, 
+      { status: 500 }
+    );
+  }
+}); 

@@ -102,12 +102,11 @@ export default async (req: Request, context: Context) => {
           }
         }
 
-        // Determine purchase type based on mode, amount, and price ID
-        if (session.mode === 'payment' || session.amount_total > 1000) {
-          purchaseType = 'lifetime';
-        } else if (detectedPriceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || session.amount_total >= 2700) {
-          // Yearly subscription: specific price ID or amount >= $27
-          purchaseType = 'yearly';
+        // NEW PRICING: $99 = lifetime, $27.99 = yearly, $3.99 = monthly
+        if (session.amount_total >= 9900) {
+          purchaseType = 'lifetime'; // $99.00
+        } else if (detectedPriceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || session.amount_total === 2799) {
+          purchaseType = 'yearly'; // $27.99
         }
 
         console.log('Detected purchase type:', purchaseType, 'Price ID:', detectedPriceId, 'Amount:', session.amount_total);

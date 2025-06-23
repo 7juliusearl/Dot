@@ -219,20 +219,22 @@ function detectPurchaseType(session: Stripe.Checkout.Session, priceId?: string):
   console.log('🔍 BULLETPROOF PURCHASE TYPE DETECTION');
   console.log(`Mode: ${session.mode}, Amount: ${session.amount_total}, Price ID: ${priceId}`);
   
-  // Lifetime: payment mode or high amount
-  if (session.mode === 'payment' || (session.amount_total && session.amount_total > 1000)) {
-    console.log('✅ DETECTED: LIFETIME');
+  // NEW PRICING: $99 = lifetime, $27.99 = yearly, $3.99 = monthly
+  
+  // Lifetime: $99.00 (9900 cents)
+  if (session.amount_total && session.amount_total >= 9900) {
+    console.log('✅ DETECTED: LIFETIME ($99)');
     return 'lifetime';
   }
   
-  // Yearly: specific price ID or high subscription amount
-  if (priceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || (session.amount_total && session.amount_total >= 2700)) {
-    console.log('✅ DETECTED: YEARLY');
+  // Yearly: $27.99 (2799 cents) or specific price ID
+  if (priceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || (session.amount_total && session.amount_total === 2799)) {
+    console.log('✅ DETECTED: YEARLY ($27.99)');
     return 'yearly';
   }
   
-  // Default: monthly
-  console.log('✅ DETECTED: MONTHLY');
+  // Default: monthly ($3.99)
+  console.log('✅ DETECTED: MONTHLY ($3.99)');
   return 'monthly';
 }
 

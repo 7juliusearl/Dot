@@ -100,13 +100,13 @@ async function handleCheckoutCompleted(event: Stripe.Event) {
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
     const priceId = lineItems.data[0]?.price?.id;
 
-    // Determine purchase type based on mode, price ID, and amount
+    // NEW PRICING: $99 = lifetime, $27.99 = yearly, $3.99 = monthly
     let purchase_type: 'lifetime' | 'monthly' | 'yearly' = 'monthly';
     
-    if (session.mode === 'payment' || (session.amount_total && session.amount_total > 1000)) {
-      purchase_type = 'lifetime';
-    } else if (priceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || (session.amount_total && session.amount_total >= 2700)) {
-      purchase_type = 'yearly';
+    if (session.amount_total && session.amount_total >= 9900) {
+      purchase_type = 'lifetime'; // $99.00
+    } else if (priceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || (session.amount_total && session.amount_total === 2799)) {
+      purchase_type = 'yearly'; // $27.99
     }
 
     console.log(`📊 Detected: ${purchase_type} subscription, Amount: $${(session.amount_total || 0) / 100}`);

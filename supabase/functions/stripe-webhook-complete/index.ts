@@ -97,13 +97,12 @@ async function handleEvent(event: Stripe.Event) {
       const lineItems = await stripe.checkout.sessions.listLineItems(checkout_session_id);
       const priceId = lineItems.data[0]?.price?.id;
 
-      // Determine purchase type based on mode and price ID
+      // NEW PRICING: $99 = lifetime, $27.99 = yearly, $3.99 = monthly
       let purchase_type: 'lifetime' | 'monthly' | 'yearly' = 'monthly';
-      if (mode === 'payment' || priceId?.includes('lifetime')) {
-        purchase_type = 'lifetime';
-      } else if (priceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || (amount_total && amount_total >= 2700)) {
-        // Yearly subscription: specific price ID or amount >= $27
-        purchase_type = 'yearly';
+      if (amount_total && amount_total >= 9900) {
+        purchase_type = 'lifetime'; // $99.00
+      } else if (priceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || (amount_total && amount_total === 2799)) {
+        purchase_type = 'yearly'; // $27.99
       }
 
       // Get customer email
