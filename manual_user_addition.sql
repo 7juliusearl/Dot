@@ -47,8 +47,10 @@ BEGIN
   -- Step 3: Set price_id and amount based on purchase type
   IF purchase_type = 'lifetime' THEN
     price_id_to_use := 'price_1RbnH2InTpoMSXou7m5p43Sh'; -- Your lifetime price ID
-  ELSE
+  ELSIF purchase_type = 'yearly' THEN
     price_id_to_use := 'price_1RbnIfInTpoMSXouPdJBHz97'; -- Your yearly price ID  
+  ELSE
+    price_id_to_use := 'price_1RW01zInTpoMSXoua1wZb9zY'; -- Your monthly price ID
   END IF;
   
   amount_in_cents := (amount_paid * 100)::integer;
@@ -131,7 +133,8 @@ BEGIN
     CASE WHEN purchase_type = 'lifetime' THEN NULL 
          ELSE EXTRACT(EPOCH FROM NOW())::bigint END,
     CASE WHEN purchase_type = 'lifetime' THEN NULL 
-         ELSE EXTRACT(EPOCH FROM NOW() + INTERVAL '1 year')::bigint END,
+         WHEN purchase_type = 'yearly' THEN EXTRACT(EPOCH FROM NOW() + INTERVAL '1 year')::bigint
+         ELSE EXTRACT(EPOCH FROM NOW() + INTERVAL '1 month')::bigint END,
     CASE WHEN purchase_type = 'lifetime' THEN false ELSE false END,
     CASE WHEN purchase_type = 'lifetime' THEN NULL ELSE 'active' END,
     NOW(),

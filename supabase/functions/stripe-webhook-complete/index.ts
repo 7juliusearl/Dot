@@ -98,9 +98,12 @@ async function handleEvent(event: Stripe.Event) {
       const priceId = lineItems.data[0]?.price?.id;
 
       // Determine purchase type based on mode and price ID
-      let purchase_type: 'lifetime' | 'monthly' = 'monthly';
+      let purchase_type: 'lifetime' | 'monthly' | 'yearly' = 'monthly';
       if (mode === 'payment' || priceId?.includes('lifetime')) {
         purchase_type = 'lifetime';
+      } else if (priceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || (amount_total && amount_total >= 2700)) {
+        // Yearly subscription: specific price ID or amount >= $27
+        purchase_type = 'yearly';
       }
 
       // Get customer email
@@ -218,9 +221,9 @@ async function handleEvent(event: Stripe.Event) {
         console.log(`✅ FINAL SUCCESS: Real payment method captured: ${payment_method_brand} ending in ${payment_method_last4}`);
       }
 
-      // Get subscription data for monthly purchases
+      // Get subscription data for subscription purchases (monthly/yearly)
       let subscriptionData = {};
-      if (purchase_type === 'monthly' && mode === 'subscription') {
+      if ((purchase_type === 'monthly' || purchase_type === 'yearly') && mode === 'subscription') {
         try {
           const subscriptions = await stripe.subscriptions.list({
             customer: customerId,
@@ -248,6 +251,16 @@ async function handleEvent(event: Stripe.Event) {
         subscriptionData = {
           subscription_id: null,
           price_id: priceId || 'price_1RW02UInTpoMSXouhnQLA7Jn',
+          current_period_start: null,
+          current_period_end: null,
+          cancel_at_period_end: false,
+          subscription_status: null
+        };
+      } else if (purchase_type === 'yearly') {
+        // For yearly purchases, set appropriate default values
+        subscriptionData = {
+          subscription_id: null,
+          price_id: priceId || 'price_1RbnIfInTpoMSXouPdJBHz97',
           current_period_start: null,
           current_period_end: null,
           cancel_at_period_end: false,
@@ -435,23 +448,27 @@ async function syncSubscriptionData(customerId: string, retryCount = 0) {
         };
         console.log('Lifetime purchase detected - setting active status');
       } else {
-        // Monthly purchase but no subscription found - this is an error
+        // Subscription purchase but no subscription found - this is an error
         // Set to active with generated data (emergency fallback)
+        const isYearly = orderData?.purchase_type === 'yearly';
+        const priceId = isYearly ? 'price_1RbnIfInTpoMSXouPdJBHz97' : 'price_1RW01zInTpoMSXoua1wZb9zY';
+        const periodDays = isYearly ? 365 : 30;
+        
         updateData = {
           subscription_id: `sub_generated_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          price_id: 'price_1RW01zInTpoMSXoua1wZb9zY', // Monthly price
+          price_id: priceId,
           current_period_start: Math.floor(Date.now() / 1000),
-          current_period_end: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // +30 days
+          current_period_end: Math.floor(Date.now() / 1000) + (periodDays * 24 * 60 * 60),
           cancel_at_period_end: false,
           payment_method_brand: 'card',
           payment_method_last4: '****',
           status: 'active', // ⭐ FIXED: Set to 'active' instead of 'not_started'
           updated_at: new Date().toISOString()
         };
-        console.log('⚠️ Monthly purchase but no Stripe subscription found - using fallback data');
+        console.log(`⚠️ ${isYearly ? 'Yearly' : 'Monthly'} purchase but no Stripe subscription found - using fallback data`);
         
         // Log this as an error for investigation
-        console.error(`WEBHOOK ERROR: Monthly customer ${customerId} has no subscription in Stripe after checkout`);
+        console.error(`WEBHOOK ERROR: ${isYearly ? 'Yearly' : 'Monthly'} customer ${customerId} has no subscription in Stripe after checkout`);
       }
     }
 

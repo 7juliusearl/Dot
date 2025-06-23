@@ -62,32 +62,31 @@ export default async (req: Request, context: Context) => {
       }
     }
 
-    // Forward to Supabase Edge Function with proper authentication
-    const supabaseResponse = await fetch(
-      `${supabaseUrl}/functions/v1/stripe-webhook-public`,
+    // Forward to the working Netlify function instead of broken Supabase function
+    const netlifyResponse = await fetch(
+      `https://${req.headers.get('host')}/api/stripe-webhook-complete`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceRoleKey}`,
           'stripe-signature': stripeSignature || '',
         },
         body: body
       }
     );
 
-    const responseText = await supabaseResponse.text();
-    console.log('Supabase response:', {
-      status: supabaseResponse.status,
-      statusText: supabaseResponse.statusText,
+    const responseText = await netlifyResponse.text();
+    console.log('Netlify function response:', {
+      status: netlifyResponse.status,
+      statusText: netlifyResponse.statusText,
       body: responseText.substring(0, 200)
     });
 
     // Return success to Stripe
-    if (supabaseResponse.ok) {
+    if (netlifyResponse.ok) {
       return new Response('Webhook processed successfully', { status: 200 });
     } else {
-      console.error('Supabase function error:', responseText);
+      console.error('Netlify function error:', responseText);
       return new Response('Webhook processing failed', { status: 500 });
     }
 

@@ -77,13 +77,42 @@ export default async (req: Request, context: Context) => {
 
       // Insert order record directly into Supabase
       try {
-        // Determine purchase type based on mode and amount
+        // Determine purchase type based on mode, amount, and price ID
         let purchaseType = 'monthly';
-        if (session.mode === 'payment' || session.amount_total > 1000) { // Payment mode = one-time = lifetime
-          purchaseType = 'lifetime';
+        
+        // Get line items to check price ID
+        const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+        let detectedPriceId = null;
+        
+        if (stripeSecretKey && session.subscription) {
+          try {
+            const subscriptionResponse = await fetch(`https://api.stripe.com/v1/subscriptions/${session.subscription}`, {
+              headers: {
+                'Authorization': `Bearer ${stripeSecretKey}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+              }
+            });
+            
+            if (subscriptionResponse.ok) {
+              const subscription = await subscriptionResponse.json();
+              detectedPriceId = subscription.items.data[0]?.price?.id;
+            }
+          } catch (error) {
+            console.error('Error fetching subscription for price detection:', error);
+          }
         }
 
-        // For monthly subscriptions, get the subscription_id from Stripe
+        // Determine purchase type based on mode, amount, and price ID
+        if (session.mode === 'payment' || session.amount_total > 1000) {
+          purchaseType = 'lifetime';
+        } else if (detectedPriceId === 'price_1RbnIfInTpoMSXouPdJBHz97' || session.amount_total >= 2700) {
+          // Yearly subscription: specific price ID or amount >= $27
+          purchaseType = 'yearly';
+        }
+
+        console.log('Detected purchase type:', purchaseType, 'Price ID:', detectedPriceId, 'Amount:', session.amount_total);
+
+        // For subscriptions (monthly/yearly), get the subscription_id from Stripe
         let subscriptionData: any = {
           subscription_id: null,
           price_id: null,
@@ -93,7 +122,7 @@ export default async (req: Request, context: Context) => {
           subscription_status: null
         };
 
-        if (purchaseType === 'monthly' && session.mode === 'subscription' && session.subscription) {
+        if ((purchaseType === 'monthly' || purchaseType === 'yearly') && session.mode === 'subscription' && session.subscription) {
           // Fetch subscription details from Stripe
           try {
             const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -107,9 +136,13 @@ export default async (req: Request, context: Context) => {
               
               if (subscriptionResponse.ok) {
                 const subscription = await subscriptionResponse.json();
+                const defaultPriceId = purchaseType === 'yearly' 
+                  ? 'price_1RbnIfInTpoMSXouPdJBHz97' 
+                  : 'price_1RW01zInTpoMSXoua1wZb9zY';
+                
                 subscriptionData = {
                   subscription_id: subscription.id,
-                  price_id: subscription.items.data[0]?.price?.id || 'price_1RW01zInTpoMSXoua1wZb9zY',
+                  price_id: subscription.items.data[0]?.price?.id || defaultPriceId,
                   current_period_start: subscription.current_period_start,
                   current_period_end: subscription.current_period_end,
                   cancel_at_period_end: subscription.cancel_at_period_end,
