@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Mail, Lock, AlertCircle, CheckCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from '../utils/supabase';
 
 interface SignInProps {
   onSuccess: () => void;

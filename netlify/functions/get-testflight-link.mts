@@ -83,24 +83,27 @@ export default async (request: Request) => {
     let hasAccess = false;
     let accessReason = '';
 
+    // Helper function to properly handle boolean values from database
+    const isCancelAtPeriodEnd = orderData.cancel_at_period_end === true || orderData.cancel_at_period_end === 'true';
+
     if (orderData.purchase_type === 'lifetime') {
       // Lifetime users always have access unless explicitly canceled
       hasAccess = orderData.subscription_status !== 'canceled';
       accessReason = hasAccess ? 'lifetime_access' : 'lifetime_canceled';
     } else {
       // For subscription users, check various scenarios
-      if (orderData.subscription_status === 'active' && !orderData.cancel_at_period_end) {
+      if (orderData.subscription_status === 'active' && !isCancelAtPeriodEnd) {
         // Active subscription, not canceled
         hasAccess = true;
         accessReason = 'active_subscription';
-      } else if (orderData.cancel_at_period_end && orderData.current_period_end && orderData.current_period_end > now) {
+      } else if (isCancelAtPeriodEnd && orderData.current_period_end && orderData.current_period_end > now) {
         // Canceled but still within the paid period
         hasAccess = true;
         accessReason = 'canceled_but_active_until_period_end';
       } else if (orderData.subscription_status === 'canceled' || 
                  orderData.subscription_status === 'unpaid' || 
                  orderData.subscription_status === 'past_due' ||
-                 (orderData.cancel_at_period_end && orderData.current_period_end && orderData.current_period_end <= now)) {
+                 (isCancelAtPeriodEnd && orderData.current_period_end && orderData.current_period_end <= now)) {
         // Truly canceled or expired
         hasAccess = false;
         accessReason = 'subscription_ended';

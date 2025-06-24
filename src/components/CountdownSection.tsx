@@ -2,26 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Users, AlertCircle, CheckCircle, Mail, Loader } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-// Use shared supabase instance to avoid multiple client warnings
-const getSupabaseClient = () => {
-  if (typeof window !== 'undefined' && (window as any).__supabase) {
-    return (window as any).__supabase;
-  }
-  const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL!,
-    import.meta.env.VITE_SUPABASE_ANON_KEY!
-  );
-  if (typeof window !== 'undefined') {
-    (window as any).__supabase = supabase;
-  }
-  return supabase;
-};
-
-
-
-const supabase = getSupabaseClient();
+import { supabase } from '../utils/supabase';
 
 const CountdownSection = () => {
   const [ref, inView] = useInView({

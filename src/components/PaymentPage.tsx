@@ -3,13 +3,8 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Shield, Star, Clock, AlertTriangle, Check, Mail } from 'lucide-react';
 import { products } from '../stripe-config';
-import { createClient } from '@supabase/supabase-js';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from '../utils/supabase';
 
 interface PaymentPageProps {
   onAuthFailure: () => void;

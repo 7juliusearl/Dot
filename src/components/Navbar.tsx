@@ -1,13 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Menu, X, LogOut, ChevronDown, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createClient } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from '../utils/supabase';
 
 interface NavbarProps {
   showDashboard: boolean;

@@ -1,0 +1,41 @@
+🔄 MANUAL BATCH SYNC - 10 JSON PAYLOADS
+Copy/paste each one into the Supabase Edge Function Invoke dialog:
+
+1. Sarah DeLoach Photography:
+{"action": "sync_single_customer", "customer_id": "cus_SYTcC4irOkLilX"}
+
+2. Amber GC Photos:
+{"action": "sync_single_customer", "customer_id": "cus_SYOlI54YnfORSB"}
+
+3. Nic Dampier:
+{"action": "sync_single_customer", "customer_id": "cus_SYOpAgoMKUl6jA"}
+
+4. Lunu Photography:
+{"action": "sync_single_customer", "customer_id": "cus_SYNoUuO1DZfCkx"}
+
+5. Madison Hernandez Photography:
+{"action": "sync_single_customer", "customer_id": "cus_SYLdNppx7h9O0g"}
+
+6. Sammy Scoyle Photo:
+{"action": "sync_single_customer", "customer_id": "cus_SYL3wPUyfhaAMJ"}
+
+7. LK Daniel Photography:
+{"action": "sync_single_customer", "customer_id": "cus_SYKpQEtSq8KAnO"}
+
+8. Christa and Co Photo:
+{"action": "sync_single_customer", "customer_id": "cus_SYIqIrOdyoDljg"}
+
+9. Kendrick Little:
+{"action": "sync_single_customer", "customer_id": "cus_SYHXPA4yxz6cde"}
+
+10. Emerlin Photography:
+{"action": "sync_single_customer", "customer_id": "cus_SYFSaOLJ3AFVRl"}
+
+INSTRUCTIONS:
+1. Go to: https://supabase.com/dashboard/project/juwurgxmwltebeuqindt
+2. Navigate to: Edge Functions → sync-payment-methods
+3. Click the "Invoke" button
+4. Copy/paste each JSON payload above (one at a time)
+5. Click "Invoke function" for each
+6. Wait for success response before moving to next
+7. After all 10, run check_payment_method_results.sql to verify 
