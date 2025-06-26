@@ -660,14 +660,22 @@ const Dashboard = () => {
                     )}
 
                     {testFlightLink && (
-                      <a
-                        href={testFlightLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center bg-sky text-slate px-6 py-3 rounded-full font-medium hover:shadow-lg transition-shadow"
-                      >
-                        Join TestFlight Beta <ExternalLink className="ml-2 w-5 h-5" />
-                      </a>
+                      <div className="space-y-4">
+                        <a
+                          href={testFlightLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center bg-sky text-slate px-6 py-3 rounded-full font-medium hover:shadow-lg transition-shadow"
+                        >
+                          Join TestFlight Beta <ExternalLink className="ml-2 w-5 h-5" />
+                        </a>
+                        
+                        <div className="bg-blue-100 border border-blue-200 rounded-lg p-3 mt-4">
+                          <p className="text-blue-800 text-sm text-center">
+                            <strong>Note:</strong> If asked to redeem a code, try the TestFlight link again in your Safari browser on your phone.
+                          </p>
+                        </div>
+                      </div>
                     )}
 
                     {testFlightError && (
